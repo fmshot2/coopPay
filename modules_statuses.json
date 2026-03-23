@@ -1,0 +1,10 @@
+{
+    "Loan": true,
+    "User": true,
+    "Payment": true,
+    "Contribution": true,
+    "Announcement": true,
+    "Admin": true,
+    "Auth": true,
+    "Member": true
+}

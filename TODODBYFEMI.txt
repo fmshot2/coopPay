@@ -1,0 +1,5 @@
+analytics.
+i alos need a form page. any page with form
+and a page with full datatable
+
+i can the use (after seperating the vue into its own project)this to create my payments platform.
