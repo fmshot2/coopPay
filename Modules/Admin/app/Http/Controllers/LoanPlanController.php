@@ -3,6 +3,7 @@
 namespace Modules\Admin\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Models\LoanApplication;
 use App\Models\User;
 use Modules\Loan\Models\LoanPlan;
 use Illuminate\Http\Request;
@@ -10,14 +11,55 @@ use Inertia\Inertia;
 use Inertia\Response;
 use Carbon\Carbon;
 
-class LoanController extends Controller
+class LoanPlanController extends Controller
 {
-    public function index(): Response
+    public function index(Request $request): Response
     {
-        $loans = LoanPlan::with(['user', 'loanType'])
+        $perPage = $request->input('per_page', 5);
+        $search = $request->input('search');
+        $status = $request->input('status', 'all');
+        $loanType = $request->input('loan_type', 'all');
+        $dateFilter = $request->input('date_filter', 'all');
+        $fromDate = $request->input('from_date');
+        $toDate = $request->input('to_date');
+
+        $applyDateRange = function ($query) use ($dateFilter, $fromDate, $toDate) {
+            return $query->when($dateFilter !== 'all', function ($q) use ($dateFilter, $fromDate, $toDate) {
+                if ($dateFilter === 'today') {
+                    return $q->whereDate('created_at', Carbon::today());
+                } elseif ($dateFilter === 'last_week') {
+                    return $q->whereBetween('created_at', [Carbon::now()->subWeek(), Carbon::now()]);
+                } elseif ($dateFilter === 'last_month') {
+                    return $q->whereBetween('created_at', [Carbon::now()->subMonth(), Carbon::now()]);
+                } elseif ($dateFilter === 'last_year') {
+                    return $q->whereBetween('created_at', [Carbon::now()->subYear(), Carbon::now()]);
+                } elseif ($dateFilter === 'custom' && $fromDate && $toDate) {
+                    return $q->whereBetween('created_at', [Carbon::parse($fromDate)->startOfDay(), Carbon::parse($toDate)->endOfDay()]);
+                }
+            });
+        };
+
+        $query = LoanPlan::with(['user', 'loanType'])
+            ->when($search, function ($query, $search) {
+                $query->where(function ($q) use ($search) {
+                    $q->whereHas('user', function ($qu) use ($search) {
+                        $qu->where('name', 'like', "%{$search}%")
+                            ->orWhere('member_id', 'like', "%{$search}%");
+                    });
+                });
+            })
+            ->when($status !== 'all', function ($query) use ($status) {
+                $query->where('status', $status);
+            })
+            ->when($loanType !== 'all', function ($query) use ($loanType) {
+                $query->where('loan_type_id', $loanType);
+            });
+
+        $loans = $applyDateRange($query)
             ->latest()
-            ->get()
-            ->map(fn($loan) => [
+            ->paginate($perPage)
+            ->withQueryString()
+            ->through(fn($loan) => [
                 'id'                  => $loan->id,
                 'member_name'         => $loan->user->name,
                 'member_id'           => $loan->user->member_id,
@@ -33,8 +75,41 @@ class LoanController extends Controller
                 'start_date'          => $loan->start_date?->format('M d, Y'),
             ]);
 
+        $loanTypes = \Modules\Loan\Models\LoanType::all()->map(fn($type) => [
+            'id'   => $type->id,
+            'name' => $type->name,
+        ]);
+
         return Inertia::render('Admin/Loans/Index', [
-            'loans' => $loans,
+            'loans'     => $loans,
+            'loanTypes' => $loanTypes,
+            'filters'   => $request->only(['per_page', 'search', 'status', 'loan_type', 'date_filter', 'from_date', 'to_date']),
+            'stats'     => Inertia::defer(fn() => [
+                'total_loans'      => $applyDateRange(LoanPlan::query())->count(),
+                'active_loans'     => $applyDateRange(LoanPlan::where('status', 'active'))->count(),
+                'completed_loans'  => $applyDateRange(LoanPlan::where('status', 'completed'))->count(),
+                'total_disbursed'  => $applyDateRange(LoanPlan::query())->sum('loan_amount'),
+            ]),
+        ]);
+    }
+
+    public function loan_applications(Request $request)
+    {
+        $query = LoanApplication::with(['user', 'loanType']);
+
+        if ($request->has('status') && $request->status !== 'all') {
+            $query->where('status', $request->status);
+        }
+
+        $perPage = $request->input('per_page', 15);
+        $applications = $query->orderBy('created_at', 'desc')->paginate($perPage);
+
+        return Inertia::render('Admin/LoanApplications/Index', [
+            'applications' => $applications,
+            'filters' => [
+                'status' => $request->status ?? 'all',
+                'per_page' => $request->per_page ?? 15,
+            ],
         ]);
     }
 

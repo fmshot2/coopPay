@@ -58,7 +58,7 @@ const toggleActive = (type) => {
 
 <template>
     <AppLayout>
-        <div class="space-y-6 max-w-3xl">
+        <div class="space-y-6 m-auto">
 
             <!-- Page Header -->
             <div>

@@ -4,6 +4,8 @@ namespace Modules\Member\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use Modules\Loan\Models\LoanPlan;
+use App\Models\LoanApplication;
+use App\Models\Setting;
 use Modules\Payment\Models\MonthlyDeduction;
 use Modules\Contribution\Models\ExtraPayment;
 use Illuminate\Support\Facades\Auth;
@@ -15,7 +17,18 @@ class DashboardController extends Controller
     public function index(): Response
     {
         $user     = Auth::user();
-        $loan     = LoanPlan::where('user_id', $user->id)->first();
+        $loan = LoanPlan::where('user_id', $user->id)->first();
+        $activeLoansCount = LoanPlan::where('user_id', $user->id)->where('status', 'active')->count();
+
+        $activeLoans = LoanPlan::where('user_id', $user->id)
+            ->where('status', 'active')
+            ->with('loanType')
+            ->get();
+
+        $loanRequests = LoanApplication::where('user_id', $user->id)
+            ->with('loanType')
+            ->orderBy('created_at', 'desc')
+            ->get();
 
         $recentDeductions = MonthlyDeduction::where('user_id', $user->id)
             ->latest()
@@ -42,6 +55,8 @@ class DashboardController extends Controller
                 'approved_at' => $c->approved_at,
             ]);
 
+        $cooperativeAccount = Setting::getValue('cooperative_account');
+
         return Inertia::render('Member/Dashboard/Index', [
             'loan'                => $loan ? [
                 'loan_amount'          => $loan->loan_amount,
@@ -49,12 +64,33 @@ class DashboardController extends Controller
                 'total_months'         => $loan->total_months,
                 'months_remaining'     => $loan->months_remaining,
                 'amount_remaining'     => $loan->amount_remaining,
-                'next_due_date'        => $loan->next_due_date?->format('M d, Y'),
+                'next_due_date'        => optional($loan->next_due_date)->format('M d, Y'),
                 'status'               => $loan->status,
-                'start_date'           => $loan->start_date?->format('M d, Y'),
+                'start_date'           => optional($loan->start_date)->format('M d, Y'),
             ] : null,
+            'activeLoansCount'    => $activeLoansCount,
+            'activeLoans'         => $activeLoans->map(fn($loan) => [
+                'id'               => $loan->id,
+                'loan_type'        => $loan->loanType?->name ?? 'Loan',
+                'loan_amount'      => $loan->loan_amount,
+                'monthly_payment'  => $loan->repayment_per_month,
+                'amount_remaining' => $loan->amount_remaining,
+                'status'           => $loan->status,
+                'start_date'       => $loan->start_date?->format('M d, Y'),
+                'next_due_date'    => $loan->next_due_date?->format('M d, Y'),
+            ])->toArray(),
+            'loanRequests'       => $loanRequests->map(fn($request) => [
+                'id'               => $request->id,
+                'loan_type'        => $request->loanType?->name ?? 'Loan',
+                'amount'           => $request->amount,
+                'duration_months'  => $request->duration_months,
+                'monthly_payment'  => $request->monthly_payment,
+                'status'           => $request->status,
+                'created_at'       => $request->created_at?->format('M d, Y'),
+            ])->toArray(),
             'recentDeductions'    => $recentDeductions,
             'recentContributions' => $recentContributions,
+            'cooperativeAccount'  => $cooperativeAccount,
         ]);
     }
 }

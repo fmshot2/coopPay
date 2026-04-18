@@ -6,5 +6,7 @@
     "Announcement": true,
     "Admin": true,
     "Auth": true,
-    "Member": true
+    "Member": true,
+    "Message": true,
+    "Division": true
 }

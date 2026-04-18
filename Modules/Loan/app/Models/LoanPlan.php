@@ -13,6 +13,7 @@ class LoanPlan extends Model
 
     protected $fillable = [
         'user_id',
+        'loan_type_id',
         'loan_amount',
         'interest_rate',
         'repayment_per_month',

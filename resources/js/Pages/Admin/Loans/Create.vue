@@ -47,7 +47,7 @@ const submit = () => {
 
 <template>
     <AppLayout>
-        <div class="space-y-6 max-w-xl">
+        <div class="space-y-6 max-w-xl m-auto">
 
             <div class="flex items-center gap-4">
                 <Button variant="ghost" size="icon" as-child>

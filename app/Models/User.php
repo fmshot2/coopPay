@@ -21,6 +21,8 @@ class User extends Authenticatable
         'profile_photo',
         'is_active',
         'must_change_password',
+        'division_id',
+        'max_loan_amount',
     ];
 
     protected $hidden = [
@@ -78,5 +80,25 @@ class User extends Authenticatable
     public function announcementComments()
     {
         return $this->hasMany(\Modules\Announcement\Models\AnnouncementComment::class);
+    }
+
+    public function sentMessages()
+    {
+        return $this->hasMany(Message::class, 'sender_id');
+    }
+
+    public function receivedMessages()
+    {
+        return $this->hasMany(Message::class, 'receiver_id');
+    }
+
+    public function unreadMessages()
+    {
+        return $this->hasMany(Message::class, 'receiver_id')->where('is_read', false);
+    }
+
+    public function division()
+    {
+        return $this->belongsTo(\Modules\Division\Models\Division::class);
     }
 }

@@ -3,6 +3,7 @@
 namespace Modules\Admin\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Models\LoanApplication;
 use App\Models\User;
 use Modules\Loan\Models\LoanPlan;
 use Modules\Payment\Models\MonthlyDeduction;
@@ -20,6 +21,7 @@ class DashboardController extends Controller
             'pending_deductions'      => MonthlyDeduction::where('status', 'pending')->count(),
             'pending_contributions'   => ExtraPayment::where('status', 'pending')->count(),
             'completed_loans'         => LoanPlan::where('status', 'completed')->count(),
+            'unapproved_loans'         => LoanApplication::count(),
             'total_loan_amount'       => LoanPlan::where('status', 'active')->sum('loan_amount'),
             'total_amount_remaining'  => LoanPlan::where('status', 'active')->sum('amount_remaining'),
         ];

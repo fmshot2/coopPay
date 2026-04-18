@@ -13,24 +13,71 @@ use Carbon\Carbon;
 
 class DeductionController extends Controller
 {
-    public function index(): Response
+    public function index(Request $request): Response
     {
-        $pending = MonthlyDeduction::with('user', 'loanPlan.loanType')
-            ->where('status', 'pending')
-            ->latest()
-            ->get()
-            ->map(fn($d) => $this->formatDeduction($d));
+        $perPage = $request->input('per_page', 5);
+        $search = $request->input('search');
+        $status = $request->input('status', 'all');
+        $dateFilter = $request->input('date_filter', 'all');
+        $fromDate = $request->input('from_date');
+        $toDate = $request->input('to_date');
 
-        $recent = MonthlyDeduction::with('user', 'loanPlan.loanType')
-            ->whereIn('status', ['approved', 'rejected'])
+        $applyDateRange = function ($query) use ($dateFilter, $fromDate, $toDate) {
+            return $query->when($dateFilter !== 'all', function ($q) use ($dateFilter, $fromDate, $toDate) {
+                if ($dateFilter === 'today') {
+                    return $q->whereDate('created_at', Carbon::today());
+                } elseif ($dateFilter === 'last_week') {
+                    return $q->whereBetween('created_at', [Carbon::now()->subWeek(), Carbon::now()]);
+                } elseif ($dateFilter === 'last_month') {
+                    return $q->whereBetween('created_at', [Carbon::now()->subMonth(), Carbon::now()]);
+                } elseif ($dateFilter === 'last_year') {
+                    return $q->whereBetween('created_at', [Carbon::now()->subYear(), Carbon::now()]);
+                } elseif ($dateFilter === 'custom' && $fromDate && $toDate) {
+                    return $q->whereBetween('created_at', [Carbon::parse($fromDate)->startOfDay(), Carbon::parse($toDate)->endOfDay()]);
+                }
+            });
+        };
+
+        $query = MonthlyDeduction::with(['user', 'loanPlan.loanType'])
+            ->when($search, function ($query, $search) {
+                $query->where(function ($q) use ($search) {
+                    $q->whereHas('user', function ($qu) use ($search) {
+                        $qu->where('name', 'like', "%{$search}%")
+                            ->orWhere('member_id', 'like', "%{$search}%");
+                    });
+                });
+            })
+            ->when($status !== 'all', function ($query) use ($status) {
+                $query->where('status', $status);
+            });
+
+        $deductions = $applyDateRange($query)
             ->latest()
-            ->take(20)
-            ->get()
-            ->map(fn($d) => $this->formatDeduction($d));
+            ->paginate($perPage)
+            ->withQueryString()
+            ->through(fn($d) => [
+                'id'              => $d->id,
+                'member_name'     => $d->user->name,
+                'member_id'       => $d->user->member_id,
+                'loan_type'       => $d->loanPlan?->loanType?->name ?? '—',
+                'month'           => Carbon::parse($d->month . '-01')->format('F Y'),
+                'expected_amount' => $d->expected_amount,
+                'status'          => $d->status,
+                'member_note'     => $d->member_note,
+                'admin_note'      => $d->admin_note,
+                'confirmed_at'    => $d->confirmed_at?->format('M d, Y'),
+                'approved_at'     => $d->approved_at?->format('M d, Y'),
+                'created_at'      => $d->created_at->format('M d, Y'),
+            ]);
 
         return Inertia::render('Admin/Deductions/Index', [
-            'pending' => $pending,
-            'recent'  => $recent,
+            'deductions' => $deductions,
+            'filters'    => $request->only(['per_page', 'search', 'status', 'date_filter', 'from_date', 'to_date']),
+            'stats'      => Inertia::defer(fn() => [
+                'total_pending'   => $applyDateRange(MonthlyDeduction::where('status', 'pending'))->count(),
+                'total_approved'  => $applyDateRange(MonthlyDeduction::where('status', 'approved'))->count(),
+                'total_amount'    => $applyDateRange(MonthlyDeduction::where('status', 'approved'))->sum('expected_amount'),
+            ]),
         ]);
     }
 
@@ -84,22 +131,5 @@ class DeductionController extends Controller
         ]);
 
         return back()->with('success', 'Deduction rejected.');
-    }
-
-    private function formatDeduction(MonthlyDeduction $d): array
-    {
-        return [
-            'id'              => $d->id,
-            'member_name'     => $d->user->name,
-            'member_id'       => $d->user->member_id,
-            'loan_type'       => $d->loanPlan?->loanType?->name ?? '—',
-            'month'           => $d->month,
-            'expected_amount' => $d->expected_amount,
-            'status'          => $d->status,
-            'member_note'     => $d->member_note,
-            'admin_note'      => $d->admin_note,
-            'confirmed_at'    => $d->confirmed_at?->format('M d, Y h:i A'),
-            'approved_at'     => $d->approved_at?->format('M d, Y h:i A'),
-        ];
     }
 }

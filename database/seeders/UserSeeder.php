@@ -19,6 +19,7 @@ class UserSeeder extends Seeder
             'password'              => Hash::make('password'),
             'is_active'             => true,
             'must_change_password'  => false,
+            'division_id'          => 1,
         ]);
         $admin->assignRole('admin');
 
@@ -45,6 +46,7 @@ class UserSeeder extends Seeder
                 'password'              => Hash::make('password'),
                 'is_active'             => true,
                 'must_change_password'  => true,
+                'division_id'          => 1,
             ]);
             $user->assignRole('member');
         }

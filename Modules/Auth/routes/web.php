@@ -18,10 +18,12 @@ Route::middleware('auth')->group(function () {
     Route::post('/change-password', [AuthController::class, 'changePassword'])
         ->name('password.change.post');
 
+    Route::get('/profile/complete', [AuthController::class, 'showProfileComplete'])
+        ->name('profile.complete');
+
+    Route::post('/profile/complete', [AuthController::class, 'profileComplete'])
+        ->name('profile.complete.post');
+
     Route::post('/logout', [AuthController::class, 'logout'])
         ->name('logout');
 });
-
-// Route::middleware(['auth', 'verified'])->group(function () {
-//     Route::resource('auths', AuthController::class)->names('auth');
-// });

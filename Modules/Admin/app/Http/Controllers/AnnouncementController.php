@@ -12,16 +12,41 @@ use Inertia\Response;
 
 class AnnouncementController extends Controller
 {
-    public function index(): Response
+    public function index(Request $request): Response
     {
-        $announcements = Announcement::with('author', 'comments.author')
+        $query = Announcement::with('author', 'comments.author')
             ->orderByDesc('is_pinned')
-            ->orderByDesc('published_at')
-            ->get()
-            ->map(fn($a) => $this->formatAnnouncement($a));
+            ->orderByDesc('published_at');
+
+        // Apply search filter
+        if ($request->filled('search')) {
+            $search = $request->input('search');
+            $query->where(function ($q) use ($search) {
+                $q->where('title', 'like', "%{$search}%")
+                  ->orWhere('body', 'like', "%{$search}%");
+            });
+        }
+
+        // Apply pinned filter
+        if ($request->filled('pinned')) {
+            $query->where('is_pinned', $request->input('pinned') === 'yes');
+        }
+
+        // Apply date filters
+        if ($request->filled('date_from')) {
+            $query->whereDate('published_at', '>=', $request->input('date_from'));
+        }
+
+        if ($request->filled('date_to')) {
+            $query->whereDate('published_at', '<=', $request->input('date_to'));
+        }
+
+        $perPage = $request->input('per_page', 10);
+        $announcements = $query->paginate($perPage)->through(fn($a) => $this->formatAnnouncement($a));
 
         return Inertia::render('Admin/Announcements/Index', [
             'announcements' => $announcements,
+            'filters' => $request->only(['search', 'pinned', 'date_from', 'date_to', 'per_page']),
         ]);
     }
 

@@ -1,10 +1,9 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
 import { usePage, Link, router } from '@inertiajs/vue3'
-// import { Toaster } from '@/components/ui/sonner'
-import { Toaster } from 'vue-sonner'
+import 'vue-sonner/style.css'
+import { Toaster } from '@/components/ui/sonner'
 import { toast } from 'vue-sonner'
-// import { router } from '@inertiajs/vue3'
 
 import {
     LayoutDashboard,
@@ -19,7 +18,12 @@ import {
     LogOut,
     Menu,
     User,
-    Tags
+    Tags,
+    Plus,
+    FileText,
+    Wallet,
+    MessageSquare,
+    Building2,
 } from 'lucide-vue-next'
 import {
     Avatar,
@@ -56,23 +60,30 @@ const collapsed = ref(false)
 const adminMenu = [
     { label: 'Dashboard', route: 'admin.dashboard', icon: LayoutDashboard },
     { label: 'Members', route: 'admin.members.index', icon: Users },
-    { label: 'Loan Types', route: 'admin.loan-types.index', icon: Tags },
     { label: 'Loans', route: 'admin.loans.index', icon: CreditCard },
+    { label: 'Loan Applications', route: 'admin.loan-applications.index', icon: Tags },
+    // { label: 'Register', route: 'admin.members.create', icon: Plus },
+    { label: 'Divisions', route: 'admin.divisions.index', icon: Building2 },
+    { label: 'Loan Types', route: 'admin.loan-types.index', icon: Tags },
     { label: 'Deductions', route: 'admin.deductions.index', icon: CheckCircle },
     { label: 'Contributions', route: 'admin.contributions.index', icon: PiggyBank },
     { label: 'Announcements', route: 'admin.announcements.index', icon: Megaphone },
     { label: 'Activity Log', route: 'admin.activity.index', icon: ActivitySquare },
+    { label: 'Settings', route: 'admin.settings.index', icon: Settings },
     { label: 'Profile', route: 'admin.profile.index', icon: User },
 ]
 
 // Member menu items
 const memberMenu = [
-    { label: 'Dashboard', route: 'member.dashboard', icon: LayoutDashboard },
-    { label: 'My Loan', route: 'member.loan.index', icon: CreditCard },
-    { label: 'Deductions', route: 'member.deductions.index', icon: CheckCircle },
-    { label: 'Extra Payments', route: 'member.payments.index', icon: PiggyBank },
-    { label: 'Announcements', route: 'member.announcements.index', icon: Megaphone },
-    { label: 'Profile', route: 'member.profile.index', icon: User },
+    { label: 'Dashboard',        route: 'member.dashboard',              icon: LayoutDashboard },
+    { label: 'My Loans',         route: 'member.loans.index',            icon: CreditCard },
+    { label: 'Loan Applications',route: 'member.loan-applications.index',icon: FileText },
+    { label: 'Deductions',       route: 'member.deductions.index',       icon: CheckCircle },
+    { label: 'Extra Payments',   route: 'member.payments.index',         icon: PiggyBank },
+    { label: 'Savings',          route: 'member.savings.index',          icon: Wallet },
+    { label: 'Announcements',    route: 'member.announcements.index',    icon: Megaphone },
+    { label: 'Messages',         route: 'member.messages.index',         icon: MessageSquare },
+    { label: 'Profile',          route: 'member.profile.index',          icon: User },
 ]
 
 const menuItems = computed(() => isAdmin.value ? adminMenu : memberMenu)
@@ -99,36 +110,37 @@ const logout = () => {
 //     if (flash.value?.info) toast.info(flash.value.info)
 // }
 
-const showFlash = (newVal) => {
-    const success = newVal?.success
-    const error = newVal?.error
-    const info = newVal?.info
+// Flash messages via sonner
+watch(
+    () => page.props.flash,
+    (flash) => {
+        if (flash?.success) toast.success(flash.success)
+        if (flash?.error)   toast.error(flash.error)
+        if (flash?.info)    toast.info(flash.info)
+    },
+    { deep: true }
+)
 
-    if (success) toast.success(success)
-    if (error) toast.error(error)
-    if (info) toast.info(info)
-}
-
-// Watch for flash messages
-// import { watch } from 'vue'
-// watch(flash, showFlash, { immediate: true })
-// watch(flash, showFlash, { deep: true })
 router.on('finish', () => {
-    showFlash(flash.value)
+    const flash = page.props.flash
+    if (flash?.success) toast.success(flash.success)
+    if (flash?.error)   toast.error(flash.error)
+    if (flash?.info)    toast.info(flash.info)
 })
+
 </script>
 
 <template>
     <TooltipProvider>
-        <div class="flex h-screen bg-background overflow-hidden">
+        <div class="flex h-screen bg-sidebar overflow-hidden">
 
             <!-- ===== SIDEBAR (desktop) ===== -->
             <aside :class="[
-                'hidden md:flex flex-col border-r border-sidebar-border bg-sidebar transition-all duration-300',
+                'hidden md:flex flex-col bg-sidebar transition-all duration-300',
                 collapsed ? 'w-16' : 'w-64'
             ]">
                 <!-- Logo / App Name -->
-                <div class="flex items-center justify-between px-4 py-4 border-b border-sidebar-border">
+                <div class="flex items-center justify-between px-4 py-4">
                     <span v-if="!collapsed" class="text-sidebar-foreground font-bold text-lg tracking-tight">
                         CoopPay
                     </span>
@@ -163,7 +175,7 @@ router.on('finish', () => {
                 </nav>
 
                 <!-- User section -->
-                <div class="border-t border-sidebar-border p-3">
+                <div class="p-3">
                     <DropdownMenu>
                         <DropdownMenuTrigger as-child>
                             <button :class="[
@@ -225,37 +237,21 @@ router.on('finish', () => {
             </Sheet>
 
             <!-- ===== MAIN CONTENT ===== -->
-            <div class="flex-1 flex flex-col overflow-hidden">
-
-                <!-- Topbar -->
-                <header class="h-14 border-b bg-card flex items-center justify-between px-6 shrink-0">
-                    <h1 class="text-sm font-semibold text-foreground">
-                        {{ $page.props.title ?? 'CoopPay' }}
-                    </h1>
-                    <div class="flex items-center gap-3">
-                        <span class="text-xs text-muted-foreground hidden sm:block">
-                            {{ user?.member_id }}
-                        </span>
-                        <Avatar class="h-8 w-8">
-                            <AvatarImage :src="user?.profile_photo" />
-                            <AvatarFallback class="bg-primary text-primary-foreground text-xs">
-                                {{ initials }}
-                            </AvatarFallback>
-                        </Avatar>
+            <div class="flex-1 flex flex-col overflow-hidden bg-sidebar">
+                <!-- Main Scrollable Area -->
+                <main class="flex-1 overflow-y-auto p-2 md:p-3">
+                    <div class="bg-background rounded-[2.5rem] shadow-sm min-h-full w-full p-6 md:p-10">
+                        <slot />
                     </div>
-                </header>
-
-                <!-- Page Content -->
-                <main class="flex-1 overflow-y-auto p-6">
-                    <slot />
                 </main>
             </div>
             <!-- end MAIN CONTENT -->
 
         </div>
         <!-- end flex container -->
-
+ <Toaster position="top-center"
+/>
     </TooltipProvider>
-    <Toaster position="top-right" theme="light" :duration="3000" />
+
 
 </template>

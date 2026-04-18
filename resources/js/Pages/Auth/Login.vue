@@ -1,11 +1,16 @@
 <script setup>
 import { useForm } from '@inertiajs/vue3'
+import { ref } from 'vue'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 
+const loginType = ref('member') // 'member' or 'admin'
+
 const form = useForm({
+    member_id: '',
+    name: '',
     email: '',
     password: '',
     remember: false,
@@ -60,21 +65,72 @@ const submit = () => {
                 <CardHeader>
                     <CardTitle>Sign in to your account</CardTitle>
                     <CardDescription>
-                        Enter your email and password to continue
+                        <div class="flex gap-2 mt-2">
+                            <button
+                                type="button"
+                                @click="loginType = 'member'"
+                                :class="[
+                                    'px-3 py-1 text-sm rounded-md transition-colors',
+                                    loginType === 'member'
+                                        ? 'bg-primary text-primary-foreground'
+                                        : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                                ]"
+                            >
+                                Member Login
+                            </button>
+                            <button
+                                type="button"
+                                @click="loginType = 'admin'"
+                                :class="[
+                                    'px-3 py-1 text-sm rounded-md transition-colors',
+                                    loginType === 'admin'
+                                        ? 'bg-primary text-primary-foreground'
+                                        : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                                ]"
+                            >
+                                Admin Login
+                            </button>
+                        </div>
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
                     <form @submit.prevent="submit" class="space-y-4">
 
-                        <!-- Email -->
-                        <div class="space-y-2">
-                            <Label for="email">Email address</Label>
-                            <Input id="email" v-model="form.email" type="email" placeholder="you@example.com"
-                                autocomplete="email" :class="form.errors.email ? 'border-destructive' : ''" />
-                            <p v-if="form.errors.email" class="text-xs text-destructive">
-                                {{ form.errors.email }}
-                            </p>
-                        </div>
+                        <!-- Member Login Fields -->
+                        <template v-if="loginType === 'member'">
+                            <!-- Member ID -->
+                            <div class="space-y-2">
+                                <Label for="member_id">Member ID</Label>
+                                <Input id="member_id" v-model="form.member_id" type="text" placeholder="e.g., COOP-001"
+                                    autocomplete="username" :class="form.errors.member_id ? 'border-destructive' : ''" />
+                                <p v-if="form.errors.member_id" class="text-xs text-destructive">
+                                    {{ form.errors.member_id }}
+                                </p>
+                            </div>
+
+                            <!-- Name -->
+                            <div class="space-y-2">
+                                <Label for="name">Full Name</Label>
+                                <Input id="name" v-model="form.name" type="text" placeholder="John Doe"
+                                    autocomplete="name" :class="form.errors.name ? 'border-destructive' : ''" />
+                                <p v-if="form.errors.name" class="text-xs text-destructive">
+                                    {{ form.errors.name }}
+                                </p>
+                            </div>
+                        </template>
+
+                        <!-- Admin Login Fields -->
+                        <template v-else>
+                            <!-- Email -->
+                            <div class="space-y-2">
+                                <Label for="email">Email address</Label>
+                                <Input id="email" v-model="form.email" type="email" placeholder="you@example.com"
+                                    autocomplete="email" :class="form.errors.email ? 'border-destructive' : ''" />
+                                <p v-if="form.errors.email" class="text-xs text-destructive">
+                                    {{ form.errors.email }}
+                                </p>
+                            </div>
+                        </template>
 
                         <!-- Password -->
                         <div class="space-y-2">

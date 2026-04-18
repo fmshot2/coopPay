@@ -1,10 +1,20 @@
 <script setup>
 import AppLayout from '@/Layouts/AppLayout.vue'
-import { Link, router } from '@inertiajs/vue3'
+import { Link, router, useForm } from '@inertiajs/vue3'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { ArrowLeft, UserCheck, UserX } from 'lucide-vue-next'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+    DialogFooter,
+} from '@/components/ui/dialog'
+import { ArrowLeft, UserCheck, UserX, DollarSign } from 'lucide-vue-next'
 
 const props = defineProps({
     member: Object,
@@ -22,11 +32,23 @@ const formatCurrency = (amount) => {
 const toggleActive = () => {
     router.patch(route('admin.members.toggle-active', props.member.id))
 }
+
+const maxLoanForm = useForm({
+    max_loan_amount: props.member.max_loan_amount || '',
+})
+
+const updateMaxLoan = () => {
+    maxLoanForm.patch(route('admin.members.update-max-loan', props.member.id), {
+        onSuccess: () => {
+            document.getElementById('maxLoanDialog-close')?.click()
+        }
+    })
+}
 </script>
 
 <template>
     <AppLayout>
-        <div class="space-y-6 max-w-3xl">
+        <div class="space-y-6 max-w-3xl m-auto">
 
             <!-- Page Header -->
             <div class="flex items-center justify-between">
@@ -41,11 +63,49 @@ const toggleActive = () => {
                         <p class="text-sm text-muted-foreground mt-1">{{ member.member_id }}</p>
                     </div>
                 </div>
-                <Button :variant="member.is_active ? 'destructive' : 'default'" size="sm" @click="toggleActive">
-                    <UserX v-if="member.is_active" class="h-4 w-4 mr-2" />
-                    <UserCheck v-else class="h-4 w-4 mr-2" />
-                    {{ member.is_active ? 'Deactivate' : 'Activate' }}
-                </Button>
+                <div class="flex items-center gap-2">
+                    <Dialog>
+                        <DialogTrigger as-child>
+                            <Button variant="outline" size="sm">
+                                <DollarSign class="h-4 w-4 mr-2" />
+                                Max Loan
+                            </Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                            <DialogHeader>
+                                <DialogTitle>Set Maximum Loan Amount</DialogTitle>
+                            </DialogHeader>
+                            <div class="space-y-4 py-4">
+                                <div class="space-y-2">
+                                    <Label for="max_loan_amount">Maximum Loan Amount (₦)</Label>
+                                    <Input 
+                                        id="max_loan_amount" 
+                                        v-model="maxLoanForm.max_loan_amount" 
+                                        type="number"
+                                        placeholder="e.g. 500000"
+                                        :class="maxLoanForm.errors.max_loan_amount ? 'border-destructive' : ''"
+                                    />
+                                    <p v-if="maxLoanForm.errors.max_loan_amount" class="text-xs text-destructive">
+                                        {{ maxLoanForm.errors.max_loan_amount }}
+                                    </p>
+                                </div>
+                                <p class="text-sm text-muted-foreground">
+                                    Current: {{ formatCurrency(member.max_loan_amount) || 'Not set' }}
+                                </p>
+                            </div>
+                            <DialogFooter>
+                                <Button @click="updateMaxLoan" :disabled="maxLoanForm.processing">
+                                    {{ maxLoanForm.processing ? 'Saving...' : 'Save' }}
+                                </Button>
+                            </DialogFooter>
+                        </DialogContent>
+                    </Dialog>
+                    <Button :variant="member.is_active ? 'destructive' : 'default'" size="sm" @click="toggleActive">
+                        <UserX v-if="member.is_active" class="h-4 w-4 mr-2" />
+                        <UserCheck v-else class="h-4 w-4 mr-2" />
+                        {{ member.is_active ? 'Deactivate' : 'Activate' }}
+                    </Button>
+                </div>
             </div>
 
             <!-- Member Info Card -->
@@ -71,6 +131,10 @@ const toggleActive = () => {
                         <div class="space-y-1">
                             <p class="text-xs text-muted-foreground">Phone</p>
                             <p class="text-sm font-medium">{{ member.phone ?? '—' }}</p>
+                        </div>
+                        <div class="space-y-1">
+                            <p class="text-xs text-muted-foreground">Division</p>
+                            <p class="text-sm font-medium">{{ member.division_name ?? '—' }}</p>
                         </div>
                         <div class="space-y-1">
                             <p class="text-xs text-muted-foreground">Account Status</p>

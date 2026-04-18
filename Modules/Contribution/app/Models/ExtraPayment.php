@@ -14,6 +14,7 @@ class ExtraPayment extends Model
     protected $fillable = [
         'user_id',
         'loan_plan_id',
+        'type',
         'amount',
         'narration',
         'screenshot_path',

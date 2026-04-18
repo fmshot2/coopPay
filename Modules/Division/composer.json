@@ -1,0 +1,16 @@
+{
+    "name": "modules/division",
+    "description": "Division management module",
+    "autoload": {
+        "psr-4": {
+            "Modules\\Division\\": "app/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Modules\\Division\\app\\Providers\\DivisionServiceProvider"
+            ]
+        }
+    }
+}

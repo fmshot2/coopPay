@@ -1,5 +1,6 @@
 <script setup>
 import AppLayout from '@/Layouts/AppLayout.vue'
+import { Link } from '@inertiajs/vue3'
 import { computed } from 'vue'
 import {
     Card,
@@ -37,37 +38,22 @@ const statCards = computed(() => [
         label: 'Total Members',
         value: props.stats.total_members,
         icon: Users,
+        route: route('admin.members.index'),
         description: 'Registered cooperative members',
     },
     {
         label: 'Active Loans',
         value: props.stats.active_loans,
         icon: CreditCard,
+        route: route('admin.loans.index'),
         description: `${props.stats.completed_loans} completed`,
     },
     {
-        label: 'Pending Deductions',
-        value: props.stats.pending_deductions,
-        icon: CheckCircle,
-        description: 'Awaiting admin approval',
-    },
-    {
-        label: 'Pending Contributions',
-        value: props.stats.pending_contributions,
-        icon: PiggyBank,
-        description: 'Extra payments to review',
-    },
-    {
-        label: 'Total Loan Portfolio',
-        value: formatCurrency(props.stats.total_loan_amount),
-        icon: TrendingDown,
-        description: 'Total active loan amounts',
-    },
-    {
-        label: 'Total Outstanding',
-        value: formatCurrency(props.stats.total_amount_remaining),
-        icon: BadgeCheck,
-        description: 'Remaining across all loans',
+        label: 'pending Loans',
+        value: props.stats.unapproved_loans,
+        icon: CreditCard,
+        route: route('admin.loans.applications'),
+        description: `${props.stats.unapproved_loans} unapproved`,
     },
 ])
 </script>
@@ -78,7 +64,7 @@ const statCards = computed(() => [
 
             <!-- Page Header -->
             <div>
-                <h2 class="text-2xl font-bold text-foreground">Dashboard</h2>
+                <h2 class="text-2xl font-bold text-foreground">Dashboardddd</h2>
                 <p class="text-sm text-muted-foreground mt-1">
                     Welcome back! Here's an overview of the cooperative.
                 </p>
@@ -88,8 +74,10 @@ const statCards = computed(() => [
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 <Card v-for="card in statCards" :key="card.label">
                     <CardHeader class="flex flex-row items-center justify-between pb-2">
-                        <CardTitle class="text-sm font-medium text-muted-foreground">
+                        <CardTitle class="text-md font-medium text-muted-foreground">
+                             <Link :href="card.route" class="">
                             {{ card.label }}
+                            </Link>
                         </CardTitle>
                         <component
                             :is="card.icon"
@@ -109,7 +97,7 @@ const statCards = computed(() => [
                 <!-- Pending Deductions -->
                 <Card>
                     <CardHeader>
-                        <CardTitle class="text-base">Pending Deductions</CardTitle>
+                        <CardTitle class="text-base">Pending Deductionss</CardTitle>
                         <CardDescription>Members awaiting deduction approval</CardDescription>
                     </CardHeader>
                     <CardContent>
