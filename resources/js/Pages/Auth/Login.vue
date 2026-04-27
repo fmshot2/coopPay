@@ -161,9 +161,16 @@ const submit = () => {
             </Card>
 
             <!-- Footer -->
-            <p class="text-center text-xs" style="color: oklch(0.65 0.06 150)">
-                Having trouble? Contact your administrator.
-            </p>
+            <div class="text-center space-y-2">
+                <p class="text-center text-xs" style="color: oklch(0.65 0.06 150)">
+                    Having trouble? Contact your administrator.
+                </p>
+                <p class="text-center text-xs">
+                    <button @click="$inertia.get(route('password.request'))" class="underline text-sm text-muted-foreground hover:text-white">
+                        Forgot your password?
+                    </button>
+                </p>
+            </div>
 
         </div>
     </div>

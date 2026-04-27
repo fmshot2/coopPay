@@ -3,3 +3,9 @@ i alos need a form page. any page with form
 and a page with full datatable
 
 i can the use (after seperating the vue into its own project)this to create my payments platform.
+
+## request upgrade for laon app from admin
+
+## request password reset from admin
+
+## Admin settings to change loan repayment percent and length of loan as dynamic in admin settings

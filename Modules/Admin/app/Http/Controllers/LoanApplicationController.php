@@ -2,6 +2,7 @@
 
 namespace Modules\Admin\Http\Controllers;
 
+use App\Http\Controllers\Concerns\RespondsWithJson;
 use App\Http\Controllers\Controller;
 use Modules\Loan\Models\LoanPlan;
 use Modules\Loan\Models\LoanType;
@@ -11,10 +12,13 @@ use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 use Inertia\Response;
 use Carbon\Carbon;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 
 class LoanApplicationController extends Controller
 {
-    public function index(Request $request): Response
+    use RespondsWithJson;
+    public function index(Request $request): Response|JsonResponse|RedirectResponse
     {
         $perPage    = $request->input('per_page', 10);
         $search     = $request->input('search');
@@ -65,7 +69,7 @@ class LoanApplicationController extends Controller
                 'created_at'       => $a->created_at->format('M d, Y'),
             ]);
 
-        return Inertia::render('Admin/LoanApplications/Index', [
+        return $this->respond('Admin/LoanApplications/Index', [
             'applications' => $applications,
             'filters'      => $request->only(['per_page', 'search', 'status', 'date_filter', 'from_date', 'to_date']),
             'stats'        => Inertia::defer(fn() => [
@@ -77,37 +81,41 @@ class LoanApplicationController extends Controller
         ]);
     }
 
-    public function show(LoanApplication $loanApplication): Response
+    public function show(LoanApplication $loanApplication): Response|JsonResponse|RedirectResponse
     {
-        $loanApplication->load(['user', 'loanType', 'approvedBy']);
+        try {
+            $loanApplication->load(['user', 'loanType', 'approvedBy']);
 
-        return Inertia::render('Admin/LoanApplications/Show', [
-            'application' => [
-                'id'               => $loanApplication->id,
-                'member_name'      => $loanApplication->user->name,
-                'member_id'        => $loanApplication->user->member_id,
-                'member_email'     => $loanApplication->user->email,
-                'member_phone'     => $loanApplication->user->phone,
-                'loan_type'        => $loanApplication->loanType?->name ?? '—',
-                'amount'           => $loanApplication->amount,
-                'duration_months'  => $loanApplication->duration_months,
-                'monthly_payment'  => $loanApplication->monthly_payment,
-                'total_payment'    => $loanApplication->total_payment,
-                'interest_rate'    => $loanApplication->interest_rate,
-                'purpose'          => $loanApplication->purpose,
-                'status'           => $loanApplication->status,
-                'rejection_reason' => $loanApplication->rejection_reason,
-                'approved_by'      => $loanApplication->approvedBy?->name,
-                'approved_at'      => $loanApplication->approved_at?->format('M d, Y h:i A'),
-                'created_at'       => $loanApplication->created_at->format('M d, Y h:i A'),
-            ],
-        ]);
+            return $this->respond('Admin/LoanApplications/Show', [
+                'application' => [
+                    'id'               => $loanApplication->id,
+                    'member_name'      => $loanApplication->user->name,
+                    'member_id'        => $loanApplication->user->member_id,
+                    'member_email'     => $loanApplication->user->email,
+                    'member_phone'     => $loanApplication->user->phone,
+                    'loan_type'        => $loanApplication->loanType?->name ?? '—',
+                    'amount'           => $loanApplication->amount,
+                    'duration_months'  => $loanApplication->duration_months,
+                    'monthly_payment'  => $loanApplication->monthly_payment,
+                    'total_payment'    => $loanApplication->total_payment,
+                    'interest_rate'    => $loanApplication->interest_rate,
+                    'purpose'          => $loanApplication->purpose,
+                    'status'           => $loanApplication->status,
+                    'rejection_reason' => $loanApplication->rejection_reason,
+                    'approved_by'      => $loanApplication->approvedBy?->name,
+                    'approved_at'      => $loanApplication->approved_at?->format('M d, Y h:i A'),
+                    'created_at'       => $loanApplication->created_at->format('M d, Y h:i A'),
+                ],
+            ]);
+        } catch (\Throwable $e) {
+            return $this->respondException($e, 'Failed to load loan application.');
+        }
     }
 
     public function approve(Request $request, LoanApplication $loanApplication)
     {
         if ($loanApplication->status !== 'pending') {
-            return back()->with('error', 'This application has already been processed.');
+            return $this->respondSingleError('This application has already been processed.');
         }
 
         $loanApplication->update([
@@ -136,26 +144,30 @@ class LoanApplicationController extends Controller
             'notes'               => $loanApplication->purpose,
         ]);
 
-        return back()->with('success', 'Loan application approved and loan plan created.');
+        return $this->respondSuccess('Loan application approved and loan plan created.');
     }
 
     public function reject(Request $request, LoanApplication $loanApplication)
     {
-        if ($loanApplication->status !== 'pending') {
-            return back()->with('error', 'This application has already been processed.');
+        try {
+            if ($loanApplication->status !== 'pending') {
+                return $this->respondSingleError('This application has already been processed.');
+            }
+
+            $request->validate([
+                'rejection_reason' => ['required', 'string', 'max:1000'],
+            ]);
+
+            $loanApplication->update([
+                'status'           => 'rejected',
+                'approved_by'      => Auth::id(),
+                'approved_at'      => now(),
+                'rejection_reason' => $request->rejection_reason,
+            ]);
+
+            return $this->respondSuccess('Loan application rejected.');
+        } catch (\Throwable $e) {
+            return $this->respondException($e, 'Failed to reject loan application.');
         }
-
-        $request->validate([
-            'rejection_reason' => ['required', 'string', 'max:1000'],
-        ]);
-
-        $loanApplication->update([
-            'status'           => 'rejected',
-            'approved_by'      => Auth::id(),
-            'approved_at'      => now(),
-            'rejection_reason' => $request->rejection_reason,
-        ]);
-
-        return back()->with('success', 'Loan application rejected.');
     }
 }

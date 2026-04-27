@@ -2,82 +2,107 @@
 
 namespace Modules\Admin\Http\Controllers;
 
+use App\Http\Controllers\Concerns\RespondsWithJson;
 use App\Http\Controllers\Controller;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
 use Inertia\Response;
 use Spatie\Permission\Models\Permission;
 
 class PermissionController extends Controller
 {
-    public function index(): Response
+    use RespondsWithJson;
+
+    public function index(): Response|JsonResponse|RedirectResponse
     {
-        $permissions = Permission::withCount('roles')
-            ->get()
-            ->map(fn($permission) => [
-                'id' => $permission->id,
-                'name' => $permission->name,
-                'guard_name' => $permission->guard_name,
-                'roles_count' => $permission->roles_count,
-                'created_at' => $permission->created_at->format('M d, Y'),
+        try {
+            $permissions = Permission::withCount('roles')
+                ->get()
+                ->map(fn($permission) => [
+                    'id' => $permission->id,
+                    'name' => $permission->name,
+                    'guard_name' => $permission->guard_name,
+                    'roles_count' => $permission->roles_count,
+                    'created_at' => $permission->created_at->format('M d, Y'),
+                ]);
+
+            return $this->respond('Admin/Permissions/Index', [
+                'permissions' => $permissions,
+            ]);
+        } catch (\Throwable $e) {
+            return $this->respondException($e, 'Failed to load permissions.');
+        }
+    }
+
+    public function create(): Response|JsonResponse|RedirectResponse
+    {
+        try {
+            return $this->respond('Admin/Permissions/Create');
+        } catch (\Throwable $e) {
+            return $this->respondException($e, 'Failed to load permission creation form.');
+        }
+    }
+
+    public function store(Request $request): JsonResponse|RedirectResponse
+    {
+        try {
+            $request->validate([
+                'name' => ['required', 'string', 'max:255', 'unique:permissions,name'],
             ]);
 
-        return Inertia::render('Admin/Permissions/Index', [
-            'permissions' => $permissions,
-        ]);
+            $permission = Permission::create([
+                'name' => $request->name,
+                'guard_name' => 'web',
+            ]);
+
+            return $this->respondSuccess("Permission {$permission->name} created successfully.");
+        } catch (\Throwable $e) {
+            return $this->respondException($e, 'Failed to create permission.');
+        }
     }
 
-    public function create(): Response
+    public function edit(Permission $permission): Response|JsonResponse|RedirectResponse
     {
-        return Inertia::render('Admin/Permissions/Create');
+        try {
+            return $this->respond('Admin/Permissions/Edit', [
+                'permission' => [
+                    'id' => $permission->id,
+                    'name' => $permission->name,
+                    'guard_name' => $permission->guard_name,
+                ],
+            ]);
+        } catch (\Throwable $e) {
+            return $this->respondException($e, 'Failed to load permission for editing.');
+        }
     }
 
-    public function store(Request $request)
+    public function update(Request $request, Permission $permission): JsonResponse|RedirectResponse
     {
-        $request->validate([
-            'name' => ['required', 'string', 'max:255', 'unique:permissions,name'],
-        ]);
+        try {
+            $request->validate([
+                'name' => ['required', 'string', 'max:255', 'unique:permissions,name,' . $permission->id],
+            ]);
 
-        $permission = Permission::create([
-            'name' => $request->name,
-            'guard_name' => 'web',
-        ]);
+            $permission->update([
+                'name' => $request->name,
+            ]);
 
-        return redirect()
-            ->route('admin.permissions.index')
-            ->with('success', "Permission {$permission->name} created successfully.");
+            return $this->respondSuccess("Permission {$permission->name} updated successfully.");
+        } catch (\Throwable $e) {
+            return $this->respondException($e, 'Failed to update permission.');
+        }
     }
 
-    public function edit(Permission $permission): Response
+    public function destroy(Permission $permission): JsonResponse|RedirectResponse
     {
-        return Inertia::render('Admin/Permissions/Edit', [
-            'permission' => [
-                'id' => $permission->id,
-                'name' => $permission->name,
-                'guard_name' => $permission->guard_name,
-            ],
-        ]);
-    }
+        try {
+            $permission->delete();
 
-    public function update(Request $request, Permission $permission)
-    {
-        $request->validate([
-            'name' => ['required', 'string', 'max:255', 'unique:permissions,name,' . $permission->id],
-        ]);
-
-        $permission->update([
-            'name' => $request->name,
-        ]);
-
-        return redirect()
-            ->route('admin.permissions.index')
-            ->with('success', "Permission {$permission->name} updated successfully.");
-    }
-
-    public function destroy(Permission $permission)
-    {
-        $permission->delete();
-
-        return back()->with('success', "Permission {$permission->name} deleted successfully.");
+            return $this->respondSuccess("Permission {$permission->name} deleted successfully.");
+        } catch (\Throwable $e) {
+            return $this->respondException($e, 'Failed to delete permission.');
+        }
     }
 }

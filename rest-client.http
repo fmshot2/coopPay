@@ -1,0 +1,12 @@
+
+### Login by member or Admin
+POST http://loanadminapp.test/api/v1/login
+Content-Type: application/json
+Accept: application/json
+
+{
+    //"email": "user@example.com",
+    "member_id": "COOP-002",
+    "name": "Fatima Bello",
+    "password": "password"
+}
