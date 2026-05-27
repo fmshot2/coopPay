@@ -11,13 +11,14 @@ class DatabaseSeeder extends Seeder
         $this->call([
             RolesAndPermissionsSeeder::class,
             SettingsSeeder::class,
+            DivisionSeeder::class,
             UserSeeder::class,
             LoanTypeSeeder::class,
-            // LoanPlanSeeder::class,
-            // MonthlyDeductionSeeder::class,
-            // ExtraPaymentSeeder::class,
+            LoanPlanSeeder::class,
+            MonthlyDeductionSeeder::class,
+            ExtraPaymentSeeder::class,
             AnnouncementSeeder::class,
-            \Modules\Division\database\seeders\DivisionSeeder::class,
+            YearMonthSeeder::class,
         ]);
     }
 }

@@ -82,7 +82,7 @@ const submit = () => {
                     <form @submit.prevent="submit" class="space-y-4">
 
                         <!-- Loan -->
-                        <div class="space-y-2">
+                        <div v-if="loans.length > 0" class="space-y-2">
                             <Label for="loan_plan_id">Loan <span class="text-destructive">*</span></Label>
                             <select
                                 id="loan_plan_id"
@@ -170,12 +170,12 @@ const submit = () => {
                 </CardContent>
             </Card>
 
-            <!-- No active loans -->
-            <Card v-if="loans.length === 0">
+            <!-- No active loans notice -->
+            <Card v-if="loans.length === 0 && !showForm">
                 <CardContent class="py-10 text-center">
                     <PiggyBank class="h-10 w-10 text-muted-foreground mx-auto mb-3" />
-                    <p class="text-sm text-muted-foreground">
-                        You have no active loans to make extra payments for.
+                    <p class="text-sm text-muted-foreground mb-4">
+                        You have no active loans. You can still submit a payment which will be added to your savings.
                     </p>
                 </CardContent>
             </Card>

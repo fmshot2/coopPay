@@ -47,6 +47,7 @@ const props = defineProps({
         '--success-text': '#ffffff',
         '--success-border': '#15803d',
         '--error-bg': 'hsl(var(--popover))',
+        // '--error-bg': '#dc2626',
         '--error-text': 'hsl(var(--popover-foreground))',
         '--error-border': 'hsl(var(--border))',
         '--border-radius': 'var(--radius)',

@@ -1,6 +1,6 @@
 <?php
 
-namespace Modules\Division\database\seeders;
+namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use Modules\Division\Models\Division;

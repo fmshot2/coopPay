@@ -60,28 +60,41 @@ class ContributionController extends Controller
 
     public function store(Request $request): JsonResponse|RedirectResponse
     {
+        // dd($request->all());
         try {
-            $request->validate([
-                'loan_plan_id' => ['required', 'exists:loan_plans,id'],
-                'amount'       => ['required', 'numeric', 'min:1'],
-                'narration'    => ['required', 'string', 'max:500'],
-                'screenshot'   => ['required', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:2048'],
-            ]);
-
             $user = Auth::user();
-
-            // Verify loan belongs to user
-            $loan = LoanPlan::where('id', $request->loan_plan_id)
-                ->where('user_id', $user->id)
+            $hasActiveLoan = LoanPlan::where('user_id', $user->id)
                 ->where('status', 'active')
-                ->firstOrFail();
+                ->exists();
+
+            $rules = [
+                'amount'     => ['required', 'numeric', 'min:1'],
+                'narration'  => ['required', 'string', 'max:500'],
+                'screenshot' => ['required', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:2048'],
+            ];
+
+            if ($hasActiveLoan) {
+                $rules['loan_plan_id'] = ['required', 'exists:loan_plans,id'];
+            }
+
+            $request->validate($rules);
+
+            // Verify loan belongs to user if provided
+            if ($hasActiveLoan && $request->loan_plan_id) {
+                $loan = LoanPlan::where('id', $request->loan_plan_id)
+                    ->where('user_id', $user->id)
+                    ->where('status', 'active')
+                    ->firstOrFail();
+            } else {
+                $loan = null;
+            }
 
             // Store screenshot
             $path = $request->file('screenshot')->store('contributions', 'public');
 
             ExtraPayment::create([
                 'user_id'         => $user->id,
-                'loan_plan_id'    => $loan->id,
+                'loan_plan_id'    => $loan?->id ?? null,
                 'amount'          => $request->amount,
                 'narration'       => $request->narration,
                 'screenshot_path' => $path,

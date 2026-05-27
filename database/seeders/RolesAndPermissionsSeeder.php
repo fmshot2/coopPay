@@ -30,17 +30,18 @@ class RolesAndPermissionsSeeder extends Seeder
             'view-activity-log',
             'manage-messages',
             'manage-divisions',
+            'manage-settings',
         ];
 
         foreach ($permissions as $permission) {
-            Permission::create(['name' => $permission]);
+            Permission::firstOrCreate(['name' => $permission]);
         }
 
         // Create roles and assign permissions
-        $admin = Role::create(['name' => 'admin']);
+        $admin = Role::firstOrCreate(['name' => 'admin']);
         $admin->givePermissionTo($permissions);
 
-        $member = Role::create(['name' => 'member']);
+        $member = Role::firstOrCreate(['name' => 'member']);
         // Members don't get admin permissions by default
     }
 }

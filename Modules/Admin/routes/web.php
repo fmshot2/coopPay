@@ -29,13 +29,18 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
         Route::get('/members/create', [MemberController::class, 'create'])->name('members.create');
         Route::post('/members', [MemberController::class, 'store'])->name('members.store');
         Route::get('/members/template', [MemberController::class, 'downloadTemplate'])->name('members.template');
-        Route::post('/members/import', [MemberController::class, 'import'])->name('members.import');
+        Route::get('/members/import', [MemberController::class, 'showImport'])->name('members.import');
+        Route::post('/members/import/csv', [MemberController::class, 'importCsv'])->name('members.import.csv');
+        Route::post('/members/import', [MemberController::class, 'import'])->name('members.import.process');
+        Route::get('/years/{year}/months', [MemberController::class, 'months'])->name('years.months');
         Route::get('/members/{user}', [MemberController::class, 'show'])->name('members.show');
         Route::get('/members/{user}/edit', [MemberController::class, 'edit'])->name('members.edit');
         Route::patch('/members/{user}', [MemberController::class, 'update'])->name('members.update');
         Route::patch('/members/{user}/toggle-active', [MemberController::class, 'toggleActive'])->name('members.toggle-active');
         Route::patch('/members/{user}/reset-password', [MemberController::class, 'resetPassword'])->name('members.reset-password');
         Route::patch('/members/{user}/update-max-loan', [MemberController::class, 'updateMaxLoan'])->name('members.update-max-loan');
+        Route::get('/members/{user}/assignees-search', [MemberController::class, 'searchAssignees'])->name('members.assignees-search');
+        Route::patch('/members/{user}/reassign', [MemberController::class, 'reassign'])->name('members.reassign');
     });
 
     // Roles
@@ -91,10 +96,14 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
         Route::get('/deductions', [DeductionController::class, 'index'])->name('deductions.index');
         Route::patch('/deductions/{deduction}/approve', [DeductionController::class, 'approve'])->name('deductions.approve');
         Route::patch('/deductions/{deduction}/reject', [DeductionController::class, 'reject'])->name('deductions.reject');
+        // Import monthly deductions (CSV)
+        Route::get('/deductions/import', [DeductionController::class, 'showImport'])->name('deductions.import');
+        Route::post('/deductions/import', [DeductionController::class, 'import'])->name('deductions.import.process');
     });
 
     // Contributions
     Route::middleware('permission:manage-contributions')->group(function () {
+        Route::get('/savings', [ContributionController::class, 'savingsIndex'])->name('savings.index');
         Route::get('/contributions', [ContributionController::class, 'index'])->name('contributions.index');
         Route::patch('/contributions/{contribution}/approve', [ContributionController::class, 'approve'])->name('contributions.approve');
         Route::patch('/contributions/{contribution}/reject', [ContributionController::class, 'reject'])->name('contributions.reject');

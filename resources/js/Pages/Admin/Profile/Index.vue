@@ -64,7 +64,7 @@ const submitPassword = () => {
 
 <template>
     <AppLayout>
-        <div class="space-y-6 max-w-2xl">
+        <div class="space-y-6 max-w-5xl m-auto">
 
             <!-- Page Header -->
             <div>

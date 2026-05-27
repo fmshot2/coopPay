@@ -6,6 +6,10 @@ use App\Http\Controllers\Concerns\RespondsWithJson;
 use App\Http\Controllers\Controller;
 use Modules\Payment\Models\MonthlyDeduction;
 use Modules\Loan\Models\LoanPlan;
+use Modules\Admin\Imports\MembersImport;
+use Maatwebsite\Excel\Facades\Excel;
+use Modules\Admin\Models\Year;
+use Modules\Admin\Models\Month;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
@@ -78,7 +82,7 @@ class DeductionController extends Controller
             return $this->respond('Admin/Deductions/Index', [
                 'deductions' => $deductions,
                 'filters'    => $request->only(['per_page', 'search', 'status', 'date_filter', 'from_date', 'to_date']),
-                'stats'      => \Inertia::defer(fn() => [
+                'stats'      => Inertia::defer(fn() => [
                     'total_pending'   => $applyDateRange(MonthlyDeduction::where('status', 'pending'))->count(),
                     'total_approved'  => $applyDateRange(MonthlyDeduction::where('status', 'approved'))->count(),
                     'total_amount'    => $applyDateRange(MonthlyDeduction::where('status', 'approved'))->sum('expected_amount'),
@@ -144,6 +148,60 @@ class DeductionController extends Controller
             return $this->respondSuccess('Deduction rejected.');
         } catch (\Throwable $e) {
             return $this->respondException($e, 'Failed to reject deduction.');
+        }
+    }
+
+    /**
+     * Show the import page for monthly deductions CSV
+     */
+    public function showImport(): Response|JsonResponse|RedirectResponse
+    {
+        try {
+            $years = Year::orderByDesc('year')->take(10)->get(['id', 'year']);
+            $defaultYear = $years->firstWhere('year', Carbon::now()->year) ?? $years->first();
+            $months = $defaultYear
+                ? $defaultYear->months()->orderBy('number')->get(['id', 'name', 'number'])
+                : collect();
+
+            return $this->respond('Admin/Deductions/Import', [
+                'years' => $years,
+                'months' => $months,
+            ]);
+        } catch (\Throwable $e) {
+            return $this->respondException($e, 'Failed to load deductions import page.');
+        }
+    }
+
+    /**
+     * Process uploaded CSV to import monthly deductions
+     */
+    public function import(Request $request)
+    {
+        try {
+            $request->validate([
+                'file'     => ['required', 'file', 'mimes:csv,xlsx,xls', 'max:4096'],
+                'year_id'  => ['required', 'exists:years,id'],
+                'month_id' => ['required', 'exists:months,id'],
+            ]);
+
+            Month::where('id', $request->month_id)
+                ->where('year_id', $request->year_id)
+                ->firstOrFail();
+
+            $import = new MembersImport($request->year_id, $request->month_id);
+            Excel::import($import, $request->file('file'));
+
+            $message = "{$import->processed} rows processed successfully.";
+            if ($import->skipped > 0) {
+                $message .= " {$import->skipped} row(s) skipped.";
+            }
+
+            return redirect()
+                ->route('admin.deductions.index')
+                ->with('success', $message)
+                ->with('import_errors', $import->errors);
+        } catch (\Throwable $e) {
+            return $this->respondException($e, 'Failed to import deductions.');
         }
     }
 }

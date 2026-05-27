@@ -46,7 +46,7 @@ const submitReject = () => {
 
 <template>
     <AppLayout>
-        <div class="space-y-6 max-w-3xl">
+        <div class="space-y-6 max-w-5xl m-auto">
 
             <!-- Header -->
             <div class="flex items-center justify-between">

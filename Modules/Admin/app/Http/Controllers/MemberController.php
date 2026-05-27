@@ -12,6 +12,8 @@ use Inertia\Inertia;
 use Inertia\Response;
 use Maatwebsite\Excel\Facades\Excel;
 use Modules\Admin\Imports\MembersImport;
+use Modules\Admin\Models\Year;
+use Modules\Admin\Models\Month;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
@@ -20,6 +22,8 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 use Modules\Loan\Models\LoanPlan;
 use App\Models\LoanApplication;
 use Modules\Division\Models\Division;
+use Illuminate\Support\Facades\DB;
+use App\Models\Message;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 
@@ -33,6 +37,7 @@ class MemberController extends Controller
             $perPage = $request->input('per_page', 5);
             $search = $request->input('search');
             $status = $request->input('status');
+            $temporary = $request->input('temporary');
             $password = $request->input('password');
             $loan = $request->input('loan');
             $dateFilter = $request->input('date_filter', 'all');
@@ -67,6 +72,9 @@ class MemberController extends Controller
                 ->when($status !== null && $status !== 'all', function ($query) use ($status) {
                     $query->where('is_active', $status === 'active');
                 })
+                ->when($temporary !== null && $temporary !== 'all', function ($query) use ($temporary) {
+                    $query->where('is_temporary', $temporary === 'temporary');
+                })
                 ->when($password !== null && $password !== 'all', function ($query) use ($password) {
                     $query->where('must_change_password', $password === 'must_change');
                 })
@@ -97,13 +105,22 @@ class MemberController extends Controller
                     'must_change_password' => $user->must_change_password,
                     'roles'                => $user->roles->pluck('name'),
                     'loan_status'          => $user->loanPlan?->status ?? 'no loan',
+                    'is_temporary'        => $user->is_temporary,
                     'created_at'           => $user->created_at->format('M d, Y'),
                 ]);
 
+            $years = Year::orderByDesc('year')->take(3)->get(['id', 'year']);
+            $defaultYear = $years->firstWhere('year', Carbon::now()->year) ?? $years->first();
+            $months = $defaultYear
+                ? $defaultYear->months()->orderBy('number')->get(['id', 'name', 'number'])
+                : collect();
+
             return $this->respond('Admin/Members/Index', [
                 'members' => $members,
-                'filters' => $request->only(['per_page', 'search', 'status', 'password', 'loan', 'date_filter', 'from_date', 'to_date']),
-                'stats'   => \Inertia::defer(fn() => [
+                'filters' => $request->only(['per_page', 'search', 'status', 'temporary', 'password', 'loan', 'date_filter', 'from_date', 'to_date']),
+                'years'   => $years,
+                'months'  => $months,
+                'stats'   => Inertia::defer(fn() => [
                     'total_members'    => $applyDateRange(User::role('member'))->count(),
                     'active_loans'     => $applyDateRange(LoanPlan::where('status', 'active'))->count(),
                     'completed_loans'  => $applyDateRange(LoanPlan::where('status', 'completed'))->count(),
@@ -112,6 +129,105 @@ class MemberController extends Controller
             ]);
         } catch (\Throwable $e) {
             return $this->respondException($e, 'Failed to load members.');
+        }
+    }
+
+    public function searchAssignees(Request $request, User $user): JsonResponse
+    {
+        try {
+            $request->validate([
+                'q' => ['nullable', 'string', 'max:100'],
+            ]);
+
+            $query = trim($request->input('q', ''));
+
+            $assignees = User::role('member')
+                ->where('is_temporary', false)
+                ->where('id', '!=', $user->id)
+                ->when($query !== '', function ($q) use ($query) {
+                    $q->where(function ($sub) use ($query) {
+                        $sub->where('name', 'like', "%{$query}%")
+                            ->orWhere('email', 'like', "%{$query}%")
+                            ->orWhere('member_id', 'like', "%{$query}%")
+                            ->orWhereHas('division', function ($division) use ($query) {
+                                $division->where('name', 'like', "%{$query}%");
+                            });
+                    });
+                }, function ($q) use ($user) {
+                    $nameTokens = collect(explode(' ', preg_replace('/\s+/', ' ', trim($user->name))))
+                        ->filter()
+                        ->take(3);
+
+                    if ($nameTokens->isNotEmpty()) {
+                        $q->where(function ($sub) use ($nameTokens) {
+                            foreach ($nameTokens as $token) {
+                                $sub->orWhere('name', 'like', "%{$token}%");
+                            }
+                        });
+                    }
+                })
+                ->with('division')
+                ->orderBy('name')
+                ->limit(50)
+                ->get()
+                ->map(fn($assignee) => [
+                    'id' => $assignee->id,
+                    'name' => $assignee->name,
+                    'division_name' => $assignee->division?->name,
+                ]);
+
+            return response()->json($assignees);
+        } catch (\Throwable $e) {
+            return response()->json(['message' => 'Failed to fetch assignees.'], 500);
+        }
+    }
+
+    public function reassign(Request $request, User $user)
+    {
+        try {
+            $request->validate([
+                'target_member_id' => ['required', 'exists:users,id'],
+            ]);
+
+            $targetId = $request->input('target_member_id');
+
+            if ($user->id == $targetId) {
+                return $this->respondException(new \Exception('Cannot reassign to the same member.'), 'Invalid target member.');
+            }
+
+            $target = User::findOrFail($targetId);
+
+            if (!$user->is_temporary) {
+                return $this->respondException(new \Exception('Source member is not temporary.'), 'Only temporary members can be reassigned.');
+            }
+
+            if ($target->is_temporary) {
+                return $this->respondException(new \Exception('Target member must be a real (non-temporary) member.'), 'Invalid target member.');
+            }
+
+            DB::transaction(function () use ($user, $targetId) {
+                // Reassign loan plans
+                $user->loanPlans()->update(['user_id' => $targetId]);
+
+                // Reassign monthly deductions and extra payments
+                $user->monthlyDeductions()->update(['user_id' => $targetId]);
+                if (method_exists($user, 'extraPayments')) {
+                    $user->extraPayments()->update(['user_id' => $targetId]);
+                }
+
+                // Reassign announcements
+                if (method_exists($user, 'announcements')) {
+                    $user->announcements()->update(['user_id' => $targetId]);
+                }
+
+                // Reassign messages (sender/receiver)
+                Message::where('sender_id', $user->id)->update(['sender_id' => $targetId]);
+                Message::where('receiver_id', $user->id)->update(['receiver_id' => $targetId]);
+            });
+
+            return $this->respondSuccess("Temporary member {$user->name} reassigned to member ID {$targetId}.");
+        } catch (\Throwable $e) {
+            return $this->respondException($e, 'Failed to reassign member.');
         }
     }
 
@@ -356,12 +472,11 @@ class MemberController extends Controller
             'Content-Disposition' => 'attachment; filename="members_template.csv"',
         ];
 
-        $columns = ['name', 'email', 'phone', 'member_id'];
-        $sample  = ['John Doe', 'john@example.com', '08012345678', 'COOP-020'];
+        // CSV has NO column headers: col1=name, col2=division
+        $sample = ['John Doe', 'Finance'];
 
-        $callback = function () use ($columns, $sample) {
+        $callback = function () use ($sample) {
             $file = fopen('php://output', 'w');
-            fputcsv($file, $columns);
             fputcsv($file, $sample);
             fclose($file);
         };
@@ -369,17 +484,106 @@ class MemberController extends Controller
         return response()->stream($callback, 200, $headers);
     }
 
+    public function showImport(): Response|JsonResponse|RedirectResponse
+    {
+        try {
+            return $this->respond('Admin/Members/Import');
+        } catch (\Throwable $e) {
+            return $this->respondException($e, 'Failed to load member import page.');
+        }
+    }
+
+    public function importCsv(Request $request)
+    {
+        try {
+            $request->validate([
+                'file' => ['required', 'file', 'mimes:csv', 'max:2048'],
+            ]);
+
+            $filePath = $request->file('file')->getRealPath();
+            $handle = fopen($filePath, 'r');
+
+            if (!$handle) {
+                throw new \Exception('Unable to read uploaded file.');
+            }
+
+            $processed = 0;
+            $skipped = 0;
+
+            while (($row = fgetcsv($handle)) !== false) {
+                if (count($row) < 2) {
+                    continue;
+                }
+
+                $name = trim($row[0]);
+                $divisionName = trim($row[1]);
+
+                if ($name === '' || $divisionName === '') {
+                    continue;
+                }
+
+                $division = Division::whereRaw('LOWER(name) = ?', [strtolower($divisionName)])->first();
+                if (!$division) {
+                    $division = Division::create(['name' => $divisionName, 'is_active' => true]);
+                }
+
+                $duplicate = User::where('name', $name)
+                    ->where('division_id', $division->id)
+                    ->exists();
+
+                if ($duplicate) {
+                    $skipped++;
+                    continue;
+                }
+
+                $user = User::create([
+                    'member_id'            => $this->generateMemberId(),
+                    'name'                 => $name,
+                    'email'                => null,
+                    'phone'                => null,
+                    'password'             => Hash::make('password'),
+                    'is_active'            => true,
+                    'must_change_password' => true,
+                    'division_id'          => $division->id,
+                    'is_temporary'         => true,
+                ]);
+
+                $user->assignRole('member');
+                $processed++;
+            }
+
+            fclose($handle);
+
+            $message = "{$processed} member(s) created successfully.";
+            if ($skipped > 0) {
+                $message .= " {$skipped} row(s) skipped because the exact member already exists in the same division.";
+            }
+
+            return redirect()
+                ->route('admin.members.index')
+                ->with('success', $message);
+        } catch (\Throwable $e) {
+            return $this->respondException($e, 'Failed to import members.');
+        }
+    }
+
     public function import(Request $request)
     {
         try {
             $request->validate([
-                'file' => ['required', 'file', 'mimes:csv,xlsx,xls', 'max:2048'],
+                'file'     => ['required', 'file', 'mimes:csv,xlsx,xls', 'max:2048'],
+                'year_id'  => ['required', 'exists:years,id'],
+                'month_id' => ['required', 'exists:months,id'],
             ]);
 
-            $import = new MembersImport();
+            Month::where('id', $request->month_id)
+                ->where('year_id', $request->year_id)
+                ->firstOrFail();
+
+            $import = new MembersImport($request->year_id, $request->month_id);
             Excel::import($import, $request->file('file'));
 
-            $message = "{$import->created} member(s) imported successfully.";
+            $message = "{$import->processed} member(s) processed successfully.";
             if ($import->skipped > 0) {
                 $message .= " {$import->skipped} row(s) skipped.";
             }
@@ -391,6 +595,13 @@ class MemberController extends Controller
         } catch (\Throwable $e) {
             return $this->respondException($e, 'Failed to import members.');
         }
+    }
+
+    public function months(Year $year)
+    {
+        return response()->json(
+            $year->months()->orderBy('number')->get(['id', 'name', 'number'])
+        );
     }
 
     private function generateMemberId(): string

@@ -38,7 +38,7 @@ const submit = () => {
 <template>
     <AppLayout>
 
-        <div class="space-y-6 max-w-xl m-auto">
+        <div class="space-y-6 max-w-5xl m-auto">
 
             <!-- Page Header -->
             <div class="flex items-center gap-4">

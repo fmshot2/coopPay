@@ -59,14 +59,34 @@ const collapsed = ref(false)
 // Admin menu items
 const adminMenu = [
     { label: 'Dashboard', route: 'admin.dashboard', icon: LayoutDashboard },
-    { label: 'Members', route: 'admin.members.index', icon: Users },
+    {
+        label: 'Members',
+        route: 'admin.members.index',
+        icon: Users,
+        children: [
+            { label: 'All Members', route: 'admin.members.index' },
+            { label: 'Add New Member', route: 'admin.members.create' },
+            { label: 'Upload Members (CSV)', route: 'admin.members.import' },
+        ],
+    },
     { label: 'Loans', route: 'admin.loans.index', icon: CreditCard },
     { label: 'Loan Applications', route: 'admin.loan-applications.index', icon: Tags },
     // { label: 'Register', route: 'admin.members.create', icon: Plus },
+    {
+        label: 'Deductions',
+        route: 'admin.deductions.index',
+        icon: CheckCircle,
+        children: [
+            { label: 'All Deductions', route: 'admin.deductions.index' },
+            { label: 'Upload Monthly Deductions (CSV)', route: 'admin.deductions.import' },
+        ],
+    },
+    { label: 'Savings', route: 'admin.savings.index', icon: Wallet },
+    { label: 'Extra Payments', route: 'admin.contributions.index', icon: PiggyBank },
     { label: 'Divisions', route: 'admin.divisions.index', icon: Building2 },
     { label: 'Loan Types', route: 'admin.loan-types.index', icon: Tags },
-    { label: 'Deductions', route: 'admin.deductions.index', icon: CheckCircle },
-    { label: 'Contributions', route: 'admin.contributions.index', icon: PiggyBank },
+    // { label: 'Deductions', route: 'admin.deductions.index', icon: CheckCircle },
+
     { label: 'Announcements', route: 'admin.announcements.index', icon: Megaphone },
     { label: 'Activity Log', route: 'admin.activity.index', icon: ActivitySquare },
     { label: 'Settings', route: 'admin.settings.index', icon: Settings },
@@ -75,15 +95,15 @@ const adminMenu = [
 
 // Member menu items
 const memberMenu = [
-    { label: 'Dashboard',        route: 'member.dashboard',              icon: LayoutDashboard },
-    { label: 'My Loans',         route: 'member.loans.index',            icon: CreditCard },
-    { label: 'Loan Applications',route: 'member.loan-applications.index',icon: FileText },
-    { label: 'Deductions',       route: 'member.deductions.index',       icon: CheckCircle },
-    { label: 'Extra Payments',   route: 'member.payments.index',         icon: PiggyBank },
-    { label: 'Savings',          route: 'member.savings.index',          icon: Wallet },
-    { label: 'Announcements',    route: 'member.announcements.index',    icon: Megaphone },
-    { label: 'Messages',         route: 'member.messages.index',         icon: MessageSquare },
-    { label: 'Profile',          route: 'member.profile.index',          icon: User },
+    { label: 'Dashboard', route: 'member.dashboard', icon: LayoutDashboard },
+    { label: 'My Loans', route: 'member.loans.index', icon: CreditCard },
+    { label: 'Loan Applications', route: 'member.loan-applications.index', icon: FileText },
+    { label: 'Deductions', route: 'member.deductions.index', icon: CheckCircle },
+    { label: 'Extra Payments', route: 'member.payments.index', icon: PiggyBank },
+    { label: 'Savings', route: 'member.savings.index', icon: Wallet },
+    { label: 'Announcements', route: 'member.announcements.index', icon: Megaphone },
+    { label: 'Messages', route: 'member.messages.index', icon: MessageSquare },
+    { label: 'Profile', route: 'member.profile.index', icon: User },
 ]
 
 const menuItems = computed(() => isAdmin.value ? adminMenu : memberMenu)
@@ -115,8 +135,8 @@ watch(
     () => page.props.flash,
     (flash) => {
         if (flash?.success) toast.success(flash.success)
-        if (flash?.error)   toast.error(flash.error)
-        if (flash?.info)    toast.info(flash.info)
+        if (flash?.error) toast.error(flash.error)
+        if (flash?.info) toast.info(flash.info)
     },
     { deep: true }
 )
@@ -124,8 +144,8 @@ watch(
 router.on('finish', () => {
     const flash = page.props.flash
     if (flash?.success) toast.success(flash.success)
-    if (flash?.error)   toast.error(flash.error)
-    if (flash?.info)    toast.info(flash.info)
+    if (flash?.error) toast.error(flash.error)
+    if (flash?.info) toast.info(flash.info)
 })
 
 </script>
@@ -156,16 +176,41 @@ router.on('finish', () => {
                     <template v-for="item in menuItems" :key="item.route">
                         <Tooltip :delay-duration="0">
                             <TooltipTrigger as-child>
-                                <Link :href="route(item.route)" :class="[
-                                    'flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors',
-                                    'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
-                                    $page.url.startsWith('/' + item.route.split('.')[1])
-                                        ? 'bg-sidebar-accent text-sidebar-accent-foreground'
-                                        : ''
-                                ]">
-                                    <component :is="item.icon" class="h-5 w-5 shrink-0" />
-                                    <span v-if="!collapsed" class="truncate">{{ item.label }}</span>
-                                </Link>
+                                <div>
+                                    <DropdownMenu v-if="item.children && item.children.length > 0 && isAdmin">
+                                        <DropdownMenuTrigger as-child>
+                                            <button :class="[
+                                                'flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors w-full text-left',
+                                                'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
+                                                $page.url.startsWith('/' + item.route.split('.')[1])
+                                                    ? 'bg-sidebar-accent text-sidebar-accent-foreground'
+                                                    : ''
+                                            ]">
+                                                <component :is="item.icon" class="h-5 w-5 shrink-0" />
+                                                <span v-if="!collapsed" class="truncate">{{ item.label }}</span>
+                                            </button>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent side="right" align="start" class="w-56">
+                                            <DropdownMenuLabel>{{ item.label }}</DropdownMenuLabel>
+                                            <DropdownMenuSeparator />
+                                            <DropdownMenuItem v-for="child in item.children" :key="child.route"
+                                                as-child>
+                                                <Link :href="route(child.route)">{{ child.label }}</Link>
+                                            </DropdownMenuItem>
+                                        </DropdownMenuContent>
+                                    </DropdownMenu>
+
+                                    <Link v-else :href="route(item.route)" :class="[
+                                        'flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors',
+                                        'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
+                                        $page.url.startsWith('/' + item.route.split('.')[1])
+                                            ? 'bg-sidebar-accent text-sidebar-accent-foreground'
+                                            : ''
+                                    ]">
+                                        <component :is="item.icon" class="h-5 w-5 shrink-0" />
+                                        <span v-if="!collapsed" class="truncate">{{ item.label }}</span>
+                                    </Link>
+                                </div>
                             </TooltipTrigger>
                             <TooltipContent v-if="collapsed" side="right">
                                 {{ item.label }}
@@ -249,8 +294,8 @@ router.on('finish', () => {
 
         </div>
         <!-- end flex container -->
- <Toaster position="top-center"
-/>
+        <Toaster position="top-center" duration="3000" />
+        />
     </TooltipProvider>
 
 

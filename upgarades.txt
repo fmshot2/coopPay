@@ -1,0 +1,25 @@
+loan limit = *2 of savings
+add total/aggregate saving for all members
+all contribution initially clears loan b4 adding to savings
+change personal loan type to "basic" -- done
+monthly contribution must be able to carry the loan monthly
+admin uploads contributions and is automatically approved
+add activity log for user actions (eg loan clearance, deductions, etc)
+if user pays below amount, recalculate loan and loan timeline.
+pay from the system
+add list of table deductions for members
+show error that u cant update this month twice
+the monthly contribution upload should create a new user if the user does not exist (no dont do this)
+if name does not match during upload, move the person to a pending list (e.g cos of change of name as a result of marriage). then the admin can check, update your name and approve the removal / deduction of the person's money from the source
+
+give total savings (filter by member, month, division, etc)
+also total current loans (per month, division, member, etc)
+in loan plans dashboard, add total no of member on the active loans
+add payouts/exiting member
+ add dividends module
+
+savings is called monthly contribution.
+
+u cant be deducted in a single month but if double deductions take place, it should go to pending, then the admin can move it to extra payments later.
+
+every new member must pay a sum of 2000 one time fee before account can be made active. capture that too.

@@ -107,7 +107,7 @@ const submitReject = (c) => {
                 <div>
                     <h2 class="text-2xl font-bold text-foreground">Extra Payments</h2>
                     <p class="text-sm text-muted-foreground mt-1">
-                        Review and approve member extra payment contributions
+                        Review and approve member extra payment contributionsss
                     </p>
                 </div>
                 <div class="flex flex-wrap items-center gap-3">

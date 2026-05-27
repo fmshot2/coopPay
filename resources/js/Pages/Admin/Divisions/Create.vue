@@ -28,7 +28,7 @@ const submit = () => {
 
 <template>
     <AppLayout>
-        <div class="space-y-6 max-w-xl m-auto">
+        <div class="space-y-6 max-w-5xl m-auto">
             <div class="flex items-center gap-4">
                 <Button variant="ghost" size="icon" as-child>
                     <Link :href="route('admin.divisions.index')">
@@ -54,11 +54,11 @@ const submit = () => {
                     <form @submit.prevent="submit" class="space-y-6">
                         <div class="space-y-2">
                             <Label for="name">Name <span class="text-destructive">*</span></Label>
-                            <Input 
-                                id="name" 
-                                v-model="form.name" 
+                            <Input
+                                id="name"
+                                v-model="form.name"
                                 placeholder="e.g. Main Division"
-                                :class="form.errors.name ? 'border-destructive' : ''" 
+                                :class="form.errors.name ? 'border-destructive' : ''"
                             />
                             <p v-if="form.errors.name" class="text-xs text-destructive">
                                 {{ form.errors.name }}

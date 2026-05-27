@@ -10,7 +10,7 @@ class LoanTypeSeeder extends Seeder
     public function run(): void
     {
         $types = [
-            ['name' => 'Personal',  'description' => 'Personal loan for individual needs'],
+            ['name' => 'Basic',  'description' => 'Basic personal loan for individual needs'],
             ['name' => 'Emergency', 'description' => 'Emergency loan for urgent situations'],
             ['name' => 'Housing',   'description' => 'Loan for housing and accommodation'],
             ['name' => 'Project',   'description' => 'Loan for personal or business projects'],
@@ -21,7 +21,10 @@ class LoanTypeSeeder extends Seeder
         ];
 
         foreach ($types as $type) {
-            LoanType::create($type);
+            LoanType::updateOrCreate(
+                ['slug' => str_replace(' ', '-', strtolower($type['name']))],
+                $type
+            );
         }
     }
 }

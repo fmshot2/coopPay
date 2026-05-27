@@ -6,14 +6,19 @@ use App\Http\Controllers\Concerns\RespondsWithJson;
 use App\Http\Controllers\Controller;
 use Modules\Loan\Models\LoanPlan;
 use Modules\Loan\Models\LoanType;
+use Modules\Loan\Models\MonthlyRepayment;
+use Modules\Payment\Models\MonthlyDeduction;
 use App\Models\LoanApplication;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
+use Modules\Admin\Models\Year;
+use Modules\Admin\Models\Month;
 
 class LoanApplicationController extends Controller
 {
@@ -43,9 +48,11 @@ class LoanApplicationController extends Controller
         };
 
         $query = LoanApplication::with(['user', 'loanType'])
-            ->when($search, fn($q) => $q->whereHas('user', fn($qu) =>
+            ->when($search, fn($q) => $q->whereHas(
+                'user',
+                fn($qu) =>
                 $qu->where('name', 'like', "%{$search}%")
-                   ->orWhere('member_id', 'like', "%{$search}%")
+                    ->orWhere('member_id', 'like', "%{$search}%")
             ))
             ->when($status !== 'all', fn($q) => $q->where('status', $status));
 
@@ -129,20 +136,42 @@ class LoanApplicationController extends Controller
         $totalRepayable = round($loanApplication->amount + ($loanApplication->amount * 0.10), 2);
         $monthlyPayment = round($totalRepayable / $loanApplication->duration_months, 2);
 
-        LoanPlan::create([
-            'user_id'             => $loanApplication->user_id,
-            'loan_type_id'        => $loanApplication->loan_type_id,
-            'loan_amount'         => $loanApplication->amount,
-            'interest_rate'       => $interestRate,
-            'repayment_per_month' => $monthlyPayment,
-            'total_months'        => $loanApplication->duration_months,
-            'months_remaining'    => $loanApplication->duration_months,
-            'amount_remaining'    => $totalRepayable,
-            'start_date'          => now(),
-            'next_due_date'       => now()->addMonth()->startOfMonth(),
-            'status'              => 'active',
-            'notes'               => $loanApplication->purpose,
-        ]);
+        $loanPlan = DB::transaction(function () use ($loanApplication, $interestRate, $monthlyPayment, $totalRepayable) {
+            $loanPlan = LoanPlan::create([
+                'user_id'             => $loanApplication->user_id,
+                'loan_type_id'        => $loanApplication->loan_type_id,
+                'loan_amount'         => $loanApplication->amount,
+                'interest_rate'       => $interestRate,
+                'repayment_per_month' => $monthlyPayment,
+                'total_months'        => $loanApplication->duration_months,
+                'months_remaining'    => $loanApplication->duration_months,
+                'amount_remaining'    => $totalRepayable,
+                'start_date'          => now(),
+                'next_due_date'       => now()->addMonth()->startOfMonth(),
+                'status'              => 'active',
+                'notes'               => $loanApplication->purpose,
+            ]);
+
+            $deductionDate = now()->addMonth();
+            for ($i = 0; $i < $loanApplication->duration_months; $i++) {
+                MonthlyDeduction::create([
+                    'user_id'         => $loanApplication->user_id,
+                    'loan_plan_id'    => $loanPlan->id,
+                    'month'           => $deductionDate->format('Y-m'),
+                    'expected_amount' => $monthlyPayment,
+                    'status'          => 'pending',
+                    'confirmed_at'    => null,
+                    'approved_by'     => null,
+                    'approved_at'     => null,
+                    'member_note'     => null,
+                    'admin_note'      => null,
+                ]);
+
+                $deductionDate = $deductionDate->addMonth();
+            }
+
+            return $loanPlan;
+        });
 
         return $this->respondSuccess('Loan application approved and loan plan created.');
     }

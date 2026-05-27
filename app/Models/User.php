@@ -22,6 +22,7 @@ class User extends Authenticatable
         'profile_photo',
         'is_active',
         'must_change_password',
+        'is_temporary',
         'division_id',
         'max_loan_amount',
     ];
@@ -38,6 +39,7 @@ class User extends Authenticatable
             'password' => 'hashed',
             'is_active' => 'boolean',
             'must_change_password' => 'boolean',
+            'is_temporary' => 'boolean',
         ];
     }
 

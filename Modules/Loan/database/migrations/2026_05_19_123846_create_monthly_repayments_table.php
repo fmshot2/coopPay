@@ -11,17 +11,20 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('extra_payments', function (Blueprint $table) {
+        Schema::create('monthly_repayments', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
-            $table->foreignId('loan_plan_id')->nullable()->constrained()->onDelete('cascade');
-            $table->decimal('amount', 12, 2);
-            $table->string('narration')->nullable();         // member describes the payment
-            $table->string('screenshot_path')->nullable();  // uploaded proof of payment
+            $table->foreignId('loan_plan_id')->constrained()->onDelete('cascade');
+            $table->foreignId('year_id')->constrained()->onDelete('cascade');
+            $table->foreignId('month_id')->constrained()->onDelete('cascade');
+            $table->decimal('amount_due', 15, 2);
+            $table->decimal('amount_paid', 15, 2);
+            $table->string('screenshot_path')->nullable();
+            $table->string('narration')->nullable();
             $table->enum('status', ['pending', 'approved', 'rejected'])->default('pending');
             $table->foreignId('approved_by')->nullable()->constrained('users')->onDelete('set null');
             $table->timestamp('approved_at')->nullable();
-            $table->text('admin_note')->nullable();          // admin can note why rejected etc
+            $table->text('admin_note')->nullable();
             $table->timestamps();
         });
     }
@@ -31,6 +34,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('extra_payments');
+        Schema::dropIfExists('monthly_repayments');
     }
 };

@@ -64,7 +64,7 @@ const statCards = computed(() => [
 
             <!-- Page Header -->
             <div>
-                <h2 class="text-2xl font-bold text-foreground">Dashboardddd</h2>
+                <h2 class="text-2xl font-bold text-foreground">Dashboard</h2>
                 <p class="text-sm text-muted-foreground mt-1">
                     Welcome back! Here's an overview of the cooperative.
                 </p>
@@ -97,7 +97,7 @@ const statCards = computed(() => [
                 <!-- Pending Deductions -->
                 <Card>
                     <CardHeader>
-                        <CardTitle class="text-base">Pending Deductionss</CardTitle>
+                        <CardTitle class="text-base">Pending Deductions</CardTitle>
                         <CardDescription>Members awaiting deduction approval</CardDescription>
                     </CardHeader>
                     <CardContent>

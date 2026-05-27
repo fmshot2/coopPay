@@ -22,6 +22,7 @@ return new class extends Migration
             $table->string('profile_photo')->nullable();
             $table->boolean('is_active')->default(true);
             $table->boolean('must_change_password')->default(true); // force on first login
+            $table->boolean('is_temporary')->default(true);
             $table->rememberToken();
             $table->timestamps();
         });

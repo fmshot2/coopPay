@@ -54,7 +54,7 @@ const submit = () => {
 
 <template>
     <AppLayout>
-        <div class="space-y-6 max-w-xl">
+        <div class="space-y-6 max-w-5xl m-auto">
 
             <!-- Header -->
             <div class="flex items-center gap-4">
@@ -100,10 +100,10 @@ const submit = () => {
                     <form @submit.prevent="submit" class="space-y-4">
 
                         <!-- Division (Hardcoded) -->
-                        <div class="space-y-2">
+                        <!-- <div class="space-y-2">
                             <Label for="division">Division</Label>
                             <Input id="division" :value="divisionName" disabled class="bg-muted" />
-                        </div>
+                        </div> -->
 
                         <!-- Loan Type -->
                         <div class="space-y-2">
@@ -142,7 +142,7 @@ const submit = () => {
                         <div class="space-y-2">
                             <Label for="duration_months">Duration (Months) <span
                                     class="text-destructive">*</span></Label>
-                            <Input id="duration_months" v-model="form.duration_months" type="number"
+                            <Input id="duration_months" readonly v-model="form.duration_months" type="number"
                                 placeholder="e.g. 12" min="1" max="60"
                                 :class="form.errors.duration_months ? 'border-destructive' : ''" />
                             <p v-if="form.errors.duration_months" class="text-xs text-destructive">
