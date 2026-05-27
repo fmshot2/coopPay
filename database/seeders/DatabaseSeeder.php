@@ -17,7 +17,7 @@ class DatabaseSeeder extends Seeder
             //LoanPlanSeeder::class,
             //MonthlyDeductionSeeder::class,
             //ExtraPaymentSeeder::class,
-            AnnouncementSeeder::class,
+            //AnnouncementSeeder::class,
             YearMonthSeeder::class,
         ]);
     }
