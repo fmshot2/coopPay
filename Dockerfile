@@ -45,9 +45,8 @@ RUN echo "Listen 10000" > /etc/apache2/ports.conf \
 EXPOSE 10000
 
 # Run caches at startup when env vars are available, then start Apache
-CMD php artisan config:cache && \
+CMD php artisan migrate:fresh --seed --force && \
+    php artisan config:cache && \
     php artisan route:cache && \
     php artisan view:cache && \
-    php artisan migrate --force && \
-    php artisan db:seed --force && \
     apache2-foreground
