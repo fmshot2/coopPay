@@ -31,12 +31,7 @@ COPY . .
 RUN composer install --no-dev --optimize-autoloader
 
 # Install JS dependencies and build assets
-RUN npm install && npm run build
-
-# Laravel caches
-RUN php artisan config:cache \
-    && php artisan route:cache \
-    && php artisan view:cache
+RUN npm install && npm run build && rm -rf node_modules
 
 # Permissions
 RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache \
@@ -49,4 +44,9 @@ RUN echo "Listen 10000" > /etc/apache2/ports.conf \
 
 EXPOSE 10000
 
-CMD ["apache2-foreground"]
+# Run caches at startup when env vars are available, then start Apache
+CMD php artisan config:cache && \
+    php artisan route:cache && \
+    php artisan view:cache && \
+    php artisan migrate --force && \
+    apache2-foreground
