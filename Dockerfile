@@ -42,9 +42,9 @@ RUN php artisan config:cache \
 RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache \
     && chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
 
-# Apache port config for Render
-RUN echo "Listen \${PORT:-10000}" > /etc/apache2/ports.conf \
-    && sed -i 's/<VirtualHost \*:80>/<VirtualHost *:${PORT:-10000}>/' \
+# Hardcode port 10000 for Render
+RUN echo "Listen 10000" > /etc/apache2/ports.conf \
+    && sed -i 's/<VirtualHost \*:80>/<VirtualHost *:10000>/' \
     /etc/apache2/sites-available/000-default.conf
 
 EXPOSE 10000
