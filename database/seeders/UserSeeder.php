@@ -26,7 +26,7 @@ class UserSeeder extends Seeder
 
         // Create 10 Members
         $members = [
-            ['name' => 'Aliyu Musa',        'email' => 'aliyu@cooppay.test',    'phone' => '08101000001'],
+            /*['name' => 'Aliyu Musa',        'email' => 'aliyu@cooppay.test',    'phone' => '08101000001'],
             ['name' => 'Fatima Bello',       'email' => 'fatima@cooppay.test',   'phone' => '08101000002'],
             ['name' => 'Chukwuemeka Obi',   'email' => 'emeka@cooppay.test',    'phone' => '08101000003'],
             ['name' => 'Aisha Abdullahi',   'email' => 'aisha@cooppay.test',    'phone' => '08101000004'],
@@ -34,7 +34,7 @@ class UserSeeder extends Seeder
             ['name' => 'Ngozi Okonkwo',     'email' => 'ngozi@cooppay.test',    'phone' => '08101000006'],
             ['name' => 'Ibrahim Yakubu',    'email' => 'ibrahim@cooppay.test',  'phone' => '08101000007'],
             ['name' => 'Blessing Eze',      'email' => 'blessing@cooppay.test', 'phone' => '08101000008'],
-            ['name' => 'Musa Garba',        'email' => 'musa@cooppay.test',     'phone' => '08101000009'],
+            ['name' => 'Musa Garba',        'email' => 'musa@cooppay.test',     'phone' => '08101000009'],*/
             ['name' => 'Test User',      'email' => 'testuser@testuser.com',   'phone' => '08101000010'],
         ];
 
