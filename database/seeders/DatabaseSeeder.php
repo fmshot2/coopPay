@@ -14,9 +14,9 @@ class DatabaseSeeder extends Seeder
             DivisionSeeder::class,
             UserSeeder::class,
             LoanTypeSeeder::class,
-            LoanPlanSeeder::class,
-            MonthlyDeductionSeeder::class,
-            ExtraPaymentSeeder::class,
+            //LoanPlanSeeder::class,
+            //MonthlyDeductionSeeder::class,
+            //ExtraPaymentSeeder::class,
             AnnouncementSeeder::class,
             YearMonthSeeder::class,
         ]);
