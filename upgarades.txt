@@ -5,9 +5,10 @@ change personal loan type to "basic" -- done
 monthly contribution must be able to carry the loan monthly
 admin uploads contributions and is automatically approved
 add activity log for user actions (eg loan clearance, deductions, etc)
-if user pays below amount, recalculate loan and loan timeline.
-pay from the system
-add list of table deductions for members
+if user pays below amount, recalculate loan and loan timeline. (me adding this: or just fill up the equivalent months and leave out the upcoming months.
+Meaning that u can see all months and clear the immediate next month and subsequently net one, etc)
+pay from the system - not to be implemented
+add list of table deductions for members - be able to see previous deductions
 show error that u cant update this month twice
 the monthly contribution upload should create a new user if the user does not exist (no dont do this)
 if name does not match during upload, move the person to a pending list (e.g cos of change of name as a result of marriage). then the admin can check, update your name and approve the removal / deduction of the person's money from the source
@@ -23,3 +24,5 @@ savings is called monthly contribution.
 u cant be deducted in a single month but if double deductions take place, it should go to pending, then the admin can move it to extra payments later.
 
 every new member must pay a sum of 2000 one time fee before account can be made active. capture that too.
+
+most important thing: admin can only create member from a list sent from the accounts dept.
