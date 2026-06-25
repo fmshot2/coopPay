@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Hash;
 use Inertia\Inertia;
 use Inertia\Response;
 use Maatwebsite\Excel\Facades\Excel;
+use App\Rules\ValidMemberName;
 use Modules\Admin\Imports\MembersImport;
 use Modules\Admin\Models\Year;
 use Modules\Admin\Models\Month;
@@ -252,7 +253,7 @@ class MemberController extends Controller
     {
         try {
             $request->validate([
-                'name'        => ['required', 'string', 'max:255'],
+                'name'        => ['required', 'string', 'max:255', new ValidMemberName()],
                 'email'       => ['nullable', 'email', 'unique:users,email'],
                 'phone'       => ['nullable', 'string', 'max:20'],
                 'member_id'   => ['required', 'string', 'unique:users,member_id'],
@@ -384,7 +385,7 @@ class MemberController extends Controller
     {
         try {
             $request->validate([
-                'name'        => ['required', 'string', 'max:255'],
+                'name'        => ['required', 'string', 'max:255', new ValidMemberName()],
                 'email'       => ['required', 'email', 'unique:users,email,' . $user->id],
                 'phone'       => ['nullable', 'string', 'max:20'],
                 'member_id'   => ['nullable', 'string', 'unique:users,member_id,' . $user->id],
@@ -527,9 +528,10 @@ class MemberController extends Controller
                     $division = Division::create(['name' => $divisionName, 'is_active' => true]);
                 }
 
-                $duplicate = User::where('name', $name)
-                    ->where('division_id', $division->id)
-                    ->exists();
+                // $duplicate = User::where('name', $name)
+                //     ->where('division_id', $division->id)
+                //     ->exists();
+                $duplicate = $this->isFuzzyDuplicate($name);
 
                 if ($duplicate) {
                     $skipped++;
@@ -614,5 +616,60 @@ class MemberController extends Controller
 
         $number = intval(substr($last, 5)) + 1;
         return 'COOP-' . str_pad($number, 3, '0', STR_PAD_LEFT);
+    }
+
+    private function isFuzzyDuplicate(string $incomingName): bool
+    {
+        $incomingTokens = array_filter(array_map('strtolower', preg_split('/\s+/', trim($incomingName))));
+
+        if (empty($incomingTokens)) {
+            return false;
+        }
+
+        // Pre-filter: pull members in same division whose name shares at least one token
+        // This avoids loading the entire table
+        $candidates = User::get(['name']);
+
+        foreach ($candidates as $candidate) {
+            $existingTokens = array_filter(array_map('strtolower', preg_split('/\s+/', trim($candidate->name))));
+
+            if ($this->nameTokensMatch($incomingTokens, $existingTokens)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function nameTokensMatch(array $a, array $b): bool
+    {
+        $matchScore = 0;
+        $usedB = [];
+
+        foreach ($a as $ia => $tokenA) {
+            foreach ($b as $ib => $tokenB) {
+                if (isset($usedB[$ib])) continue;
+
+                $isMatch = false;
+
+                if (strlen($tokenA) > 1 && strlen($tokenB) > 1) {
+                    $isMatch = ($tokenA === $tokenB);
+                } elseif (strlen($tokenA) === 1 && strlen($tokenB) > 1) {
+                    $isMatch = ($tokenA === $tokenB[0]);
+                } elseif (strlen($tokenA) > 1 && strlen($tokenB) === 1) {
+                    $isMatch = ($tokenA[0] === $tokenB);
+                } elseif (strlen($tokenA) === 1 && strlen($tokenB) === 1) {
+                    $isMatch = ($tokenA === $tokenB); // same initial = match
+                }
+
+                if ($isMatch) {
+                    $matchScore++;
+                    $usedB[$ib] = true;
+                    break;
+                }
+            }
+        }
+
+        return $matchScore >= 2;
     }
 }

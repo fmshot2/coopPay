@@ -3,6 +3,7 @@
 namespace Modules\Admin\Imports;
 
 use App\Models\User;
+use App\Rules\ValidMemberName;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Hash;
 use Maatwebsite\Excel\Concerns\ToCollection;
@@ -47,6 +48,12 @@ class MembersImport implements ToCollection, SkipsEmptyRows
 
             if (empty($name)) {
                 $this->errors[] = "Row {$rowNumber}: name is required.";
+                $this->skipped++;
+                continue;
+            }
+
+            if (!(new ValidMemberName())->passes('name', $name)) {
+                $this->errors[] = "Row {$rowNumber}: {$name} is not a valid member name.";
                 $this->skipped++;
                 continue;
             }

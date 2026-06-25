@@ -205,7 +205,7 @@ const reassignMember = (memberId, targetId) => {
                         </a>
                     </Button>
                     <Button variant="outline" size="sm" as-child>
-                        <Link :href="route('admin.deductions.import')">
+                        <Link :href="route('admin.members.import')">
                             <Upload class="h-4 w-4 mr-2" />
                             Import
                         </Link>
@@ -418,7 +418,7 @@ const reassignMember = (memberId, targetId) => {
                                                                 <span class="truncate">{{ a.name }}</span>
                                                                 <span class="text-xs text-muted-foreground">{{
                                                                     a.division_name
-                                                                }}</span>
+                                                                    }}</span>
                                                             </DropdownMenuItem>
                                                             <div v-if="!assigneeLoading[member.id] && currentAssigneeOptions(member).length === 0"
                                                                 class="px-3 py-2 text-xs text-muted-foreground">

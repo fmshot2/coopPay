@@ -46,9 +46,10 @@ const props = defineProps({
         '--success-bg': '#16a34a',
         '--success-text': '#ffffff',
         '--success-border': '#15803d',
-        '--error-bg': 'hsl(var(--popover))',
-        // '--error-bg': '#dc2626',
-        '--error-text': 'hsl(var(--popover-foreground))',
+        // '--error-bg': 'hsl(var(--popover))',
+        '--error-bg': '#dc2626',
+        '--error-text': '#ffffff',
+        // '--error-text': 'hsl(var(--popover-foregro/und))',
         '--error-border': 'hsl(var(--border))',
         '--border-radius': 'var(--radius)',
     }">

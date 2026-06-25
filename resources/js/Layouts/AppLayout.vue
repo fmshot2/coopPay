@@ -294,7 +294,7 @@ router.on('finish', () => {
 
         </div>
         <!-- end flex container -->
-        <Toaster position="top-center" duration="3000" />
+        <Toaster position="top-center" duration="5000" />
         />
     </TooltipProvider>
 
