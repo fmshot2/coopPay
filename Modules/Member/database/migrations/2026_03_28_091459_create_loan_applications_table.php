@@ -13,7 +13,19 @@ return new class extends Migration
     {
         Schema::create('loan_applications', function (Blueprint $table) {
             $table->id();
-            
+            $table->foreignId('user_id')->constrained()->onDelete('cascade');
+            $table->foreignId('loan_type_id')->constrained()->onDelete('cascade');
+            $table->decimal('amount', 15, 2);
+            $table->integer('duration_months');
+            $table->decimal('interest_rate', 8, 2);
+            $table->decimal('monthly_payment', 15, 2);
+            $table->decimal('total_payment', 15, 2);
+            $table->text('purpose');
+            $table->enum('status', ['pending', 'approved', 'rejected'])->default('pending');
+            $table->enum('source', ['member', 'admin'])->default('member');
+            $table->foreignId('approved_by')->nullable()->constrained('users')->nullOnDelete();
+            $table->timestamp('approved_at')->nullable();
+            $table->text('rejection_reason')->nullable();
             $table->timestamps();
         });
     }

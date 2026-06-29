@@ -26,6 +26,7 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     // Members
     Route::middleware('permission:manage-members')->group(function () {
         Route::get('/members', [MemberController::class, 'index'])->name('members.index');
+        Route::get('/members/conflicted', [MemberController::class, 'membersConflictIndex'])->name('members.conflicted');
         Route::get('/members/create', [MemberController::class, 'create'])->name('members.create');
         Route::post('/members', [MemberController::class, 'store'])->name('members.store');
         Route::get('/members/template', [MemberController::class, 'downloadTemplate'])->name('members.template');
@@ -74,9 +75,11 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     // Loans
     Route::middleware('permission:manage-loans')->group(function () {
         Route::get('/loans', [LoanPlanController::class, 'index'])->name('loans.index');
+        Route::post('/loans', [LoanPlanController::class, 'store'])->name('loans.store');
+        Route::get('/loans/import', [LoanPlanController::class, 'showImport'])->name('loans.import');
+        Route::post('/loans/import/csv', [LoanPlanController::class, 'importCsv'])->name('loans.import.csv');
         Route::get('/loans/applications', [LoanPlanController::class, 'loan_applications'])->name('loans.applications');
         Route::get('/loans/create', [LoanPlanController::class, 'create'])->name('loans.create');
-        Route::post('/loans', [LoanPlanController::class, 'store'])->name('loans.store');
         Route::get('/loans/{loan}/edit', [LoanPlanController::class, 'edit'])->name('loans.edit');
         Route::patch('/loans/{loan}', [LoanPlanController::class, 'update'])->name('loans.update');
         Route::patch('/loans/{loan}/complete', [LoanPlanController::class, 'markComplete'])->name('loans.complete');

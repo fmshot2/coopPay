@@ -28,6 +28,10 @@ use App\Models\Message;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 
+
+use Modules\Admin\Models\ImportConflict;
+use App\Http\Services\FuzzyNameMatcher;
+
 class MemberController extends Controller
 {
     use RespondsWithJson;
@@ -126,6 +130,107 @@ class MemberController extends Controller
                     'active_loans'     => $applyDateRange(LoanPlan::where('status', 'active'))->count(),
                     'completed_loans'  => $applyDateRange(LoanPlan::where('status', 'completed'))->count(),
                     'unapproved_loans' => $applyDateRange(LoanApplication::query())->count(),
+                ]),
+            ]);
+        } catch (\Throwable $e) {
+            return $this->respondException($e, 'Failed to load members.');
+        }
+    }
+    public function membersConflictIndex(Request $request): Response|JsonResponse|RedirectResponse
+    {
+        try {
+            $perPage = $request->input('per_page', 5);
+            $search = $request->input('search');
+            $status = $request->input('status');
+            $temporary = $request->input('temporary');
+            $password = $request->input('password');
+            $loan = $request->input('loan');
+            $dateFilter = $request->input('date_filter', 'all');
+            $fromDate = $request->input('from_date');
+            $toDate = $request->input('to_date');
+
+            $applyDateRange = function ($query) use ($dateFilter, $fromDate, $toDate) {
+                return $query->when($dateFilter !== 'all', function ($q) use ($dateFilter, $fromDate, $toDate) {
+                    if ($dateFilter === 'today') {
+                        return $q->whereDate('created_at', Carbon::today());
+                    } elseif ($dateFilter === 'last_week') {
+                        return $q->whereBetween('created_at', [Carbon::now()->subWeek(), Carbon::now()]);
+                    } elseif ($dateFilter === 'last_month') {
+                        return $q->whereBetween('created_at', [Carbon::now()->subMonth(), Carbon::now()]);
+                    } elseif ($dateFilter === 'last_year') {
+                        return $q->whereBetween('created_at', [Carbon::now()->subYear(), Carbon::now()]);
+                    } elseif ($dateFilter === 'custom' && $fromDate && $toDate) {
+                        return $q->whereBetween('created_at', [Carbon::parse($fromDate)->startOfDay(), Carbon::parse($toDate)->endOfDay()]);
+                    }
+                });
+            };
+
+            $membersQuery = ImportConflict::where('source', 'member_import')
+                // ->with(['loanPlan', 'roles', 'division'])
+                ->when($search, function ($query, $search) {
+                    $query->where(function ($q) use ($search) {
+                        $q->where('name', 'like', "%{$search}%")
+                            ->orWhere('email', 'like', "%{$search}%")
+                            ->orWhere('member_id', 'like', "%{$search}%");
+                    });
+                })
+                ->when($status !== null && $status !== 'all', function ($query) use ($status) {
+                    $query->where('is_active', $status === 'active');
+                })
+                ->when($temporary !== null && $temporary !== 'all', function ($query) use ($temporary) {
+                    $query->where('is_temporary', $temporary === 'temporary');
+                })
+                ->when($password !== null && $password !== 'all', function ($query) use ($password) {
+                    $query->where('must_change_password', $password === 'must_change');
+                })
+                ->when($loan !== null && $loan !== 'all', function ($query) use ($loan) {
+                    if ($loan === 'no loan') {
+                        $query->whereDoesntHave('loanPlans');
+                    } else {
+                        $query->whereHas('loanPlans', function ($q) use ($loan) {
+                            $q->where('status', $loan);
+                        });
+                    }
+                });
+
+            $members = $applyDateRange($membersQuery)
+                ->with(['division'])
+                ->latest()
+                ->paginate($perPage)
+                ->withQueryString()
+                ->through(fn($user) => [
+                    'id'                   => $user->id,
+                    'member_id'            => $user->member_id,
+                    'name'                 => $user->name,
+                    'email'                => $user->email,
+                    'phone'                => $user->phone,
+                    'division_id'          => $user->division_id,
+                    'division_name'        => $user->division?->name,
+                    'is_active'            => $user->is_active,
+                    'must_change_password' => $user->must_change_password,
+                    'roles'                => 'member',
+                    // 'roles'                => $user->roles->pluck('name'),
+                    'loan_status'          => $user->loanPlan?->status ?? 'no loan',
+                    'is_temporary'        => $user->is_temporary,
+                    'created_at'           => $user->created_at->format('M d, Y'),
+                ]);
+
+            $years = Year::orderByDesc('year')->take(3)->get(['id', 'year']);
+            $defaultYear = $years->firstWhere('year', Carbon::now()->year) ?? $years->first();
+            $months = $defaultYear
+                ? $defaultYear->months()->orderBy('number')->get(['id', 'name', 'number'])
+                : collect();
+
+            return $this->respond('Admin/Members/Conflicted', [
+                'members' => $members,
+                'filters' => $request->only(['per_page', 'search', 'status', 'temporary', 'password', 'loan', 'date_filter', 'from_date', 'to_date']),
+                'years'   => $years,
+                'months'  => $months,
+                'stats'   => Inertia::defer(fn() => [
+                    'total_members'    => $applyDateRange($membersQuery)->count(),
+                    // 'active_loans'     => $applyDateRange(LoanPlan::where('status', 'active'))->count(),
+                    // 'completed_loans'  => $applyDateRange(LoanPlan::where('status', 'completed'))->count(),
+                    // 'unapproved_loans' => $applyDateRange(LoanApplication::query())->count(),
                 ]),
             ]);
         } catch (\Throwable $e) {
@@ -494,6 +599,7 @@ class MemberController extends Controller
         }
     }
 
+
     public function importCsv(Request $request)
     {
         try {
@@ -502,38 +608,53 @@ class MemberController extends Controller
             ]);
 
             $filePath = $request->file('file')->getRealPath();
-            $handle = fopen($filePath, 'r');
+            $handle   = fopen($filePath, 'r');
 
             if (!$handle) {
                 throw new \Exception('Unable to read uploaded file.');
             }
 
-            $processed = 0;
-            $skipped = 0;
+            $matcher    = new FuzzyNameMatcher();
+            $allUsers   = User::get(['id', 'name']); // load once, reuse per row
+            $processed  = 0;
+            $skipped    = 0;
+            $conflicts  = 0;
 
             while (($row = fgetcsv($handle)) !== false) {
-                if (count($row) < 2) {
-                    continue;
-                }
+                if (count($row) < 2) continue;
 
-                $name = trim($row[0]);
+                $name         = trim($row[0]);
                 $divisionName = trim($row[1]);
 
-                if ($name === '' || $divisionName === '') {
-                    continue;
-                }
+                if ($name === '' || $divisionName === '') continue;
 
                 $division = Division::whereRaw('LOWER(name) = ?', [strtolower($divisionName)])->first();
                 if (!$division) {
                     $division = Division::create(['name' => $divisionName, 'is_active' => true]);
                 }
 
-                // $duplicate = User::where('name', $name)
-                //     ->where('division_id', $division->id)
-                //     ->exists();
-                $duplicate = $this->isFuzzyDuplicate($name);
+                $matches = $matcher->findMatches($name, $allUsers);
 
-                if ($duplicate) {
+                if ($matches->isNotEmpty()) {
+                    $alreadyLogged = ImportConflict::where('name', $name)
+                        ->where('division_id', $division->id)
+                        ->where('source', 'member_import')
+                        ->where('status', 'pending')
+                        ->exists();
+
+                    if (!$alreadyLogged) {
+                        ImportConflict::create([
+                            'name'                 => $name,
+                            'division_id'          => $division->id,
+                            'importable_type'      => 'member_import',
+                            'importable_id'        => null,
+                            'source'               => 'member_import',
+                            'conflicting_user_ids' => $matches->pluck('id')->toArray(),
+                            'status'               => 'pending',
+                        ]);
+                        $conflicts++;
+                    }
+
                     $skipped++;
                     continue;
                 }
@@ -551,14 +672,19 @@ class MemberController extends Controller
                 ]);
 
                 $user->assignRole('member');
+
+                // Add newly created user to in-memory collection
+                // so subsequent rows in the same CSV can match against them
+                $allUsers->push((object)['id' => $user->id, 'name' => $user->name]);
+
                 $processed++;
             }
 
             fclose($handle);
 
-            $message = "{$processed} member(s) created successfully.";
+            $message = "{$processed} member(s) imported successfully.";
             if ($skipped > 0) {
-                $message .= " {$skipped} row(s) skipped because the exact member already exists in the same division.";
+                $message .= " {$skipped} row(s) flagged — {$conflicts} new conflict record(s) saved for review.";
             }
 
             return redirect()
@@ -618,58 +744,58 @@ class MemberController extends Controller
         return 'COOP-' . str_pad($number, 3, '0', STR_PAD_LEFT);
     }
 
-    private function isFuzzyDuplicate(string $incomingName): bool
-    {
-        $incomingTokens = array_filter(array_map('strtolower', preg_split('/\s+/', trim($incomingName))));
+    // private function isFuzzyDuplicate(string $incomingName): bool
+    // {
+    //     $incomingTokens = array_filter(array_map('strtolower', preg_split('/\s+/', trim($incomingName))));
 
-        if (empty($incomingTokens)) {
-            return false;
-        }
+    //     if (empty($incomingTokens)) {
+    //         return false;
+    //     }
 
-        // Pre-filter: pull members in same division whose name shares at least one token
-        // This avoids loading the entire table
-        $candidates = User::get(['name']);
+    //     // Pre-filter: pull members in same division whose name shares at least one token
+    //     // This avoids loading the entire table
+    //     $candidates = User::get(['name']);
 
-        foreach ($candidates as $candidate) {
-            $existingTokens = array_filter(array_map('strtolower', preg_split('/\s+/', trim($candidate->name))));
+    //     foreach ($candidates as $candidate) {
+    //         $existingTokens = array_filter(array_map('strtolower', preg_split('/\s+/', trim($candidate->name))));
 
-            if ($this->nameTokensMatch($incomingTokens, $existingTokens)) {
-                return true;
-            }
-        }
+    //         if ($this->nameTokensMatch($incomingTokens, $existingTokens)) {
+    //             return true;
+    //         }
+    //     }
 
-        return false;
-    }
+    //     return false;
+    // }
 
-    private function nameTokensMatch(array $a, array $b): bool
-    {
-        $matchScore = 0;
-        $usedB = [];
+    // private function nameTokensMatch(array $a, array $b): bool
+    // {
+    //     $matchScore = 0;
+    //     $usedB = [];
 
-        foreach ($a as $ia => $tokenA) {
-            foreach ($b as $ib => $tokenB) {
-                if (isset($usedB[$ib])) continue;
+    //     foreach ($a as $ia => $tokenA) {
+    //         foreach ($b as $ib => $tokenB) {
+    //             if (isset($usedB[$ib])) continue;
 
-                $isMatch = false;
+    //             $isMatch = false;
 
-                if (strlen($tokenA) > 1 && strlen($tokenB) > 1) {
-                    $isMatch = ($tokenA === $tokenB);
-                } elseif (strlen($tokenA) === 1 && strlen($tokenB) > 1) {
-                    $isMatch = ($tokenA === $tokenB[0]);
-                } elseif (strlen($tokenA) > 1 && strlen($tokenB) === 1) {
-                    $isMatch = ($tokenA[0] === $tokenB);
-                } elseif (strlen($tokenA) === 1 && strlen($tokenB) === 1) {
-                    $isMatch = ($tokenA === $tokenB); // same initial = match
-                }
+    //             if (strlen($tokenA) > 1 && strlen($tokenB) > 1) {
+    //                 $isMatch = ($tokenA === $tokenB);
+    //             } elseif (strlen($tokenA) === 1 && strlen($tokenB) > 1) {
+    //                 $isMatch = ($tokenA === $tokenB[0]);
+    //             } elseif (strlen($tokenA) > 1 && strlen($tokenB) === 1) {
+    //                 $isMatch = ($tokenA[0] === $tokenB);
+    //             } elseif (strlen($tokenA) === 1 && strlen($tokenB) === 1) {
+    //                 $isMatch = ($tokenA === $tokenB); // same initial = match
+    //             }
 
-                if ($isMatch) {
-                    $matchScore++;
-                    $usedB[$ib] = true;
-                    break;
-                }
-            }
-        }
+    //             if ($isMatch) {
+    //                 $matchScore++;
+    //                 $usedB[$ib] = true;
+    //                 break;
+    //             }
+    //         }
+    //     }
 
-        return $matchScore >= 2;
-    }
+    //     return $matchScore >= 2;
+    // }
 }

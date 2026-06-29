@@ -4,6 +4,7 @@ namespace Modules\Admin\Http\Controllers;
 
 use App\Http\Controllers\Concerns\RespondsWithJson;
 use App\Http\Controllers\Controller;
+use App\Http\Services\FuzzyNameMatcher;
 use App\Models\LoanApplication;
 use App\Models\User;
 use Modules\Loan\Models\LoanPlan;
@@ -13,10 +14,28 @@ use Inertia\Inertia;
 use Inertia\Response;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\DB;
+use Modules\Loan\Services\LoanApplicationService;
+
+
+use Maatwebsite\Excel\Facades\Excel;
+use App\Rules\ValidMemberName;
+use Illuminate\Support\Facades\Hash;
+use Modules\Admin\Imports\MembersImport;
+use Modules\Admin\Models\ImportConflict;
+use Modules\Admin\Models\Year;
+use Modules\Admin\Models\Month;
+use Modules\Division\Models\Division;
 
 class LoanPlanController extends Controller
 {
     use RespondsWithJson;
+    public LoanApplicationService $loanApplicationService;
+
+    public function __construct(LoanApplicationService $loanApplicationService)
+    {
+        $this->loanApplicationService = $loanApplicationService;
+    }
     public function index(Request $request): Response|JsonResponse|RedirectResponse
     {
         try {
@@ -154,7 +173,7 @@ class LoanPlanController extends Controller
 
     public function store(Request $request)
     {
-        try {
+        $transaction = DB::transaction(function () use ($request) {
             $request->validate([
                 'user_id'       => ['required', 'exists:users,id'],
                 'loan_type_id'  => ['required', 'exists:loan_types,id'],
@@ -170,27 +189,51 @@ class LoanPlanController extends Controller
             $startDate      = Carbon::parse($request->start_date);
             $nextDueDate    = $startDate->copy()->addMonth()->startOfMonth();
 
-            LoanPlan::create([
-                'user_id'             => $request->user_id,
-                'loan_type_id'        => $request->loan_type_id,
-                'loan_amount'         => $request->loan_amount,
-                'interest_rate'       => 10,
-                'repayment_per_month' => $monthlyPayment,
-                'total_months'        => $request->total_months,
-                'months_remaining'    => $request->total_months,
-                'amount_remaining'    => $totalRepayable,
-                'start_date'          => $startDate,
-                'next_due_date'       => $nextDueDate,
-                'status'              => 'active',
-                'notes'               => $request->notes,
-            ]);
+            $loanApplicationData = [
+                'loan_type_id'    => $request->loan_type_id,
+                'amount'          => $request->loan_amount,
+                'duration_months' => $request->total_months,
+                'purpose'         => $request->notes ?? null,
+            ];
 
-            return $this->respondSuccess('Loan plan created successfully.');
-        } catch (\Throwable $e) {
-            return $this->respondException($e, 'Failed to create loan plan.');
-        }
+            $this->loanApplicationService->computeAndCreate($request->user_id, $loanApplicationData, 'admin');
+            try {
+                $request->validate([
+                    'user_id'       => ['required', 'exists:users,id'],
+                    'loan_type_id'  => ['required', 'exists:loan_types,id'],
+                    'loan_amount'   => ['required', 'numeric', 'min:1'],
+                    'total_months'  => ['required', 'integer', 'min:1'],
+                    'start_date'    => ['required', 'date'],
+                    'notes'         => ['nullable', 'string'],
+                ]);
+
+                $interestRate   = 0.10;
+                $totalRepayable = $request->loan_amount + ($request->loan_amount * $interestRate);
+                $monthlyPayment = round($totalRepayable / $request->total_months, 2);
+                $startDate      = Carbon::parse($request->start_date);
+                $nextDueDate    = $startDate->copy()->addMonth()->startOfMonth();
+
+                LoanPlan::create([
+                    'user_id'             => $request->user_id,
+                    'loan_type_id'        => $request->loan_type_id,
+                    'loan_amount'         => $request->loan_amount,
+                    'interest_rate'       => 10,
+                    'repayment_per_month' => $monthlyPayment,
+                    'total_months'        => $request->total_months,
+                    'months_remaining'    => $request->total_months,
+                    'amount_remaining'    => $totalRepayable,
+                    'start_date'          => $startDate,
+                    'next_due_date'       => $nextDueDate,
+                    'status'              => 'active',
+                    'notes'               => $request->notes,
+                ]);
+
+                return $this->respondSuccess('Loan plan created successfully.');
+            } catch (\Throwable $e) {
+                return $this->respondException($e, 'Failed to create loan plan.');
+            }
+        });
     }
-
 
     public function edit(LoanPlan $loan): Response|JsonResponse|RedirectResponse
     {
@@ -288,4 +331,138 @@ class LoanPlanController extends Controller
             return $this->respondException($e, 'Failed to cancel loan.');
         }
     }
+
+    public function showImport(): Response|JsonResponse|RedirectResponse
+    {
+        try {
+            return $this->respond('Admin/Loans/Import');
+        } catch (\Throwable $e) {
+            return $this->respondException($e, 'Failed to load member import page.');
+        }
+    }
+
+    public function importCsv(Request $request)
+    {
+        try {
+            $request->validate([
+                'file' => ['required', 'file', 'mimes:csv', 'max:2048'],
+            ]);
+
+            $filePath = $request->file('file')->getRealPath();
+            $handle   = fopen($filePath, 'r');
+
+            if (!$handle) {
+                throw new \Exception('Unable to read uploaded file.');
+            }
+
+            $matcher    = new FuzzyNameMatcher();
+            $allUsers   = User::get(['id', 'name']); // load once, reuse per row
+            $processed  = 0;
+            $skipped    = 0;
+            $conflicts  = 0;
+
+            while (($row = fgetcsv($handle)) !== false) {
+                if (count($row) < 2) continue;
+
+                $name         = trim($row[0]);
+                $divisionName = trim($row[1]);
+
+                if ($name === '' || $divisionName === '') continue;
+
+                $division = Division::whereRaw('LOWER(name) = ?', [strtolower($divisionName)])->first();
+                if (!$division) {
+                    $division = Division::create(['name' => $divisionName, 'is_active' => true]);
+                }
+
+                $matches = $matcher->findMatches($name, $allUsers);
+
+                if ($matches->isNotEmpty()) {
+                    $alreadyLogged = ImportConflict::where('name', $name)
+                        ->where('division_id', $division->id)
+                        ->where('source', 'member_import')
+                        ->where('status', 'pending')
+                        ->exists();
+
+                    if (!$alreadyLogged) {
+                        ImportConflict::create([
+                            'name'                 => $name,
+                            'division_id'          => $division->id,
+                            'importable_type'      => 'member_import',
+                            'importable_id'        => null,
+                            'source'               => 'member_import',
+                            'conflicting_user_ids' => $matches->pluck('id')->toArray(),
+                            'status'               => 'pending',
+                        ]);
+                        $conflicts++;
+                    }
+
+                    $skipped++;
+                    continue;
+                }
+
+                $user = User::create([
+                    'member_id'            => $this->generateMemberId(),
+                    'name'                 => $name,
+                    'email'                => null,
+                    'phone'                => null,
+                    'password'             => Hash::make('password'),
+                    'is_active'            => true,
+                    'must_change_password' => true,
+                    'division_id'          => $division->id,
+                    'is_temporary'         => true,
+                ]);
+
+                $user->assignRole('member');
+
+                // Add newly created user to in-memory collection
+                // so subsequent rows in the same CSV can match against them
+                $allUsers->push((object)['id' => $user->id, 'name' => $user->name]);
+
+                $processed++;
+            }
+
+            fclose($handle);
+
+            $message = "{$processed} member(s) imported successfully.";
+            if ($skipped > 0) {
+                $message .= " {$skipped} row(s) flagged — {$conflicts} new conflict record(s) saved for review.";
+            }
+
+            return redirect()
+                ->route('admin.members.index')
+                ->with('success', $message);
+        } catch (\Throwable $e) {
+            return $this->respondException($e, 'Failed to import members.');
+        }
+    }
+
+    // public function import(Request $request)
+    // {
+    //     try {
+    //         $request->validate([
+    //             'file'     => ['required', 'file', 'mimes:csv,xlsx,xls', 'max:2048'],
+    //             // 'year_id'  => ['required', 'exists:years,id'],
+    //             // 'month_id' => ['required', 'exists:months,id'],
+    //         ]);
+
+    //         // Month::where('id', $request->month_id)
+    //         //     ->where('year_id', $request->year_id)
+    //         //     ->firstOrFail();
+
+    //         $import = new MembersImport($request->year_id, $request->month_id);
+    //         Excel::import($import, $request->file('file'));
+
+    //         $message = "{$import->processed} member(s) processed successfully.";
+    //         if ($import->skipped > 0) {
+    //             $message .= " {$import->skipped} row(s) skipped.";
+    //         }
+
+    //         return redirect()
+    //             ->route('admin.members.index')
+    //             ->with('success', $message)
+    //             ->with('import_errors', $import->errors);
+    //     } catch (\Throwable $e) {
+    //         return $this->respondException($e, 'Failed to import members.');
+    //     }
+    // }
 }

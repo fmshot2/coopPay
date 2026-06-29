@@ -13,9 +13,10 @@ return new class extends Migration
     {
         Schema::create('loan_plans', function (Blueprint $table) {
             $table->id();
+            $table->integer('serial_number')->unique()->nullable();
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
             $table->decimal('loan_amount', 12, 2);
-            $table->decimal('interest_rate', 5, 2)->default(0);
+            $table->decimal('interest_rate', 5, 2)->default(10);
             $table->decimal('repayment_per_month', 12, 2);
             $table->integer('total_months');
             $table->integer('months_remaining');

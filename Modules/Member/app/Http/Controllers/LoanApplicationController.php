@@ -12,10 +12,19 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
 use Inertia\Response;
+use Modules\Loan\Services\LoanApplicationService;
 use Throwable;
+
 
 class LoanApplicationController extends Controller
 {
+    public LoanApplicationService $loanApplicationService;
+
+    public function __construct(LoanApplicationService $loanApplicationService)
+    {
+        $this->loanApplicationService = $loanApplicationService;
+    }
+
     use RespondsWithJson;
     public function index(): Response|JsonResponse|RedirectResponse
     {
@@ -50,33 +59,54 @@ class LoanApplicationController extends Controller
         }
     }
 
+    // public function store(Request $request): JsonResponse|RedirectResponse
+    // {
+    //     try {
+    //         $user = Auth::user();
+
+    //         $validated = $request->validate([
+    //             'loan_type_id' => 'required|exists:loan_types,id',
+    //             'amount' => 'required|numeric|min:1|max:' . ($user->max_loan_amount ?? 999999999),
+    //             'duration_months' => 'required|integer|min:1|max:60',
+    //             'purpose' => 'nullable|string|max:500',
+    //         ]);
+
+    //         $interestRate = 10; // fixed 10% interest rate
+    //         $totalRepayable = round($validated['amount'] + ($validated['amount'] * 0.10), 2);
+    //         $monthlyPayment = round($totalRepayable / $validated['duration_months'], 2);
+
+    //         LoanApplication::create([
+    //             'user_id' => $user->id,
+    //             'loan_type_id' => $validated['loan_type_id'],
+    //             'amount' => $validated['amount'],
+    //             'interest_rate' => $interestRate,
+    //             'duration_months' => $validated['duration_months'],
+    //             'monthly_payment' => $monthlyPayment,
+    //             'total_payment' => $totalRepayable,
+    //             'purpose' => $validated['purpose'],
+    //             'status' => 'pending',
+    //         ]);
+
+    //         return $this->respondSuccess('Loan application submitted successfully!');
+    //     } catch (\Throwable $e) {
+    //         return $this->respondException($e, 'Failed to submit loan application.');
+    //     }
+    // }
+
+
     public function store(Request $request): JsonResponse|RedirectResponse
     {
         try {
             $user = Auth::user();
 
             $validated = $request->validate([
-                'loan_type_id' => 'required|exists:loan_types,id',
-                'amount' => 'required|numeric|min:1|max:' . ($user->max_loan_amount ?? 999999999),
+                'loan_type_id'    => 'required|exists:loan_types,id',
+                'amount'          => 'required|numeric|min:1|max:' . ($user->max_loan_amount ?? 999999999),
                 'duration_months' => 'required|integer|min:1|max:60',
-                'purpose' => 'nullable|string|max:500',
+                'purpose'         => 'nullable|string|max:500',
             ]);
 
-            $interestRate = 10; // fixed 10% interest rate
-            $totalRepayable = round($validated['amount'] + ($validated['amount'] * 0.10), 2);
-            $monthlyPayment = round($totalRepayable / $validated['duration_months'], 2);
-
-            LoanApplication::create([
-                'user_id' => $user->id,
-                'loan_type_id' => $validated['loan_type_id'],
-                'amount' => $validated['amount'],
-                'interest_rate' => $interestRate,
-                'duration_months' => $validated['duration_months'],
-                'monthly_payment' => $monthlyPayment,
-                'total_payment' => $totalRepayable,
-                'purpose' => $validated['purpose'],
-                'status' => 'pending',
-            ]);
+            $this->loanApplicationService->computeAndCreate($user->id, $validated);
 
             return $this->respondSuccess('Loan application submitted successfully!');
         } catch (\Throwable $e) {

@@ -25,6 +25,7 @@ return new class extends Migration
             $table->enum('status', ['active', 'completed', 'defaulted'])->default('active');
             $table->date('start_date');
             $table->date('end_date');
+            $table->string('serial_number')->nullable();
             $table->decimal('remaining_amount', 15, 2)->nullable();
             $table->timestamps();
         });

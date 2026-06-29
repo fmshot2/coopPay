@@ -66,11 +66,22 @@ const adminMenu = [
         children: [
             { label: 'All Members', route: 'admin.members.index' },
             { label: 'Add New Member', route: 'admin.members.create' },
+            { label: 'Conflicted Member', route: 'admin.members.conflicted' },
             { label: 'Upload Members (CSV)', route: 'admin.members.import' },
         ],
     },
-    { label: 'Loans', route: 'admin.loans.index', icon: CreditCard },
-    { label: 'Loan Applications', route: 'admin.loan-applications.index', icon: Tags },
+    {
+        label: 'Loans',
+        route: 'admin.loans.index',
+        icon: CreditCard,
+        children: [
+            { label: 'Upload New Loans (CSV)', route: 'admin.loans.import' },
+        ],
+    },
+    {
+        label: 'Loan Applications', route: 'admin.loan-applications.index', icon: Tags
+
+    },
     // { label: 'Register', route: 'admin.members.create', icon: Plus },
     {
         label: 'Deductions',
