@@ -20,7 +20,7 @@ return new class extends Migration
             $table->decimal('interest_rate', 8, 2);
             $table->decimal('monthly_payment', 15, 2);
             $table->decimal('total_payment', 15, 2);
-            $table->text('purpose');
+            $table->text('purpose')->nullable();
             $table->enum('status', ['pending', 'approved', 'rejected'])->default('pending');
             $table->enum('source', ['member', 'admin'])->default('member');
             $table->foreignId('approved_by')->nullable()->constrained('users')->nullOnDelete();

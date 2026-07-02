@@ -14,6 +14,8 @@ class MonthlyDeduction extends Model
     protected $fillable = [
         'user_id',
         'loan_plan_id',
+        'year_id',
+        'month_id',
         'month',
         'expected_amount',
         'status',

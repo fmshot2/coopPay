@@ -13,6 +13,9 @@ class SavingsContribution extends Model
 
     protected $fillable = [
         'user_id',
+        'year_id',
+        'month_id',
+        'month',
         'amount',
         'screenshot_path',
         'narration',

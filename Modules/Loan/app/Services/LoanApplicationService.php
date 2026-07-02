@@ -33,7 +33,8 @@ class LoanApplicationService
             monthly_payment: $monthlyPayment,
             total_payment: $totalRepayable,
             purpose: $validated['purpose'] ?? null,
-            source: $source
+            source: $source,
+            status: 'approved'
         );
     }
 

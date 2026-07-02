@@ -141,6 +141,7 @@ class MembersImport implements ToCollection, SkipsEmptyRows
             $deduction->approved_by = $amount > 0 ? auth()->id() : $deduction->approved_by;
             $deduction->approved_at = $amount > 0 ? now() : $deduction->approved_at;
             $deduction->admin_note = $amount > 0 ? "Imported payment of {$amount} for {$monthValue}" : $deduction->admin_note;
+            $deduction->is_expected_amount = $amount ==  $loanPlan->repayment_per_month ? true : false;
             $deduction->save();
 
             if (!$isNewUser) {

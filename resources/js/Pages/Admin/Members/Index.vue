@@ -51,7 +51,7 @@ const loanFilter = ref(props.filters?.loan || 'all')
 const dateFilter = ref(props.filters?.date_filter || 'all')
 const fromDate = ref(props.filters?.from_date || '')
 const toDate = ref(props.filters?.to_date || '')
-const perPage = ref(props.filters?.per_page?.toString() || '5')
+const perPage = ref(props.filters?.per_page?.toString() || '50')
 
 const updateFilters = () => {
     router.get(route('admin.members.index'), {
@@ -198,18 +198,18 @@ const reassignMember = (memberId, targetId) => {
 
                     <div class="h-8 w-px bg-border mx-1 hidden md:block"></div>
 
-                    <Button variant="outline" size="sm" as-child>
+                    <!-- <Button variant="outline" size="sm" as-child>
                         <a :href="route('admin.members.template')">
                             <Download class="h-4 w-4 mr-2" />
                             Template
                         </a>
-                    </Button>
-                    <Button variant="outline" size="sm" as-child>
+                    </Button> -->
+                    <!-- <Button variant="outline" size="sm" as-child>
                         <Link :href="route('admin.members.import')">
                             <Upload class="h-4 w-4 mr-2" />
                             Import
                         </Link>
-                    </Button>
+                    </Button> -->
                     <Button size="sm" as-child>
                         <Link :href="route('admin.members.create')">
                             <Plus class="h-4 w-4 mr-2" />
@@ -391,8 +391,8 @@ const reassignMember = (memberId, targetId) => {
                                                     View Details
                                                 </Link>
                                             </Button>
-                                            <div class="inline-block ml-2">
-                                                <!-- <div class="inline-block ml-2" v-if="member.is_temporary"> -->
+                                            <!-- <div class="inline-block ml-2">
+                                                <div class="inline-block ml-2" v-if="member.is_temporary">
                                                 <DropdownMenu>
                                                     <DropdownMenuTrigger as-child>
                                                         <Button size="sm" variant="outline"
@@ -418,7 +418,7 @@ const reassignMember = (memberId, targetId) => {
                                                                 <span class="truncate">{{ a.name }}</span>
                                                                 <span class="text-xs text-muted-foreground">{{
                                                                     a.division_name
-                                                                    }}</span>
+                                                                }}</span>
                                                             </DropdownMenuItem>
                                                             <div v-if="!assigneeLoading[member.id] && currentAssigneeOptions(member).length === 0"
                                                                 class="px-3 py-2 text-xs text-muted-foreground">
@@ -427,7 +427,7 @@ const reassignMember = (memberId, targetId) => {
                                                         </div>
                                                     </DropdownMenuContent>
                                                 </DropdownMenu>
-                                            </div>
+                                            </div> -->
                                         </td>
                                     </tr>
                                 </tbody>

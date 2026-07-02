@@ -15,6 +15,9 @@ return new class extends Migration
             $table->id();
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
             $table->decimal('amount', 15, 2);
+            $table->foreignId('year_id')->constrained()->onDelete('cascade');
+            $table->foreignId('month_id')->constrained()->onDelete('cascade');
+            $table->string('month'); // format: 2025-01
             $table->string('screenshot_path')->nullable();
             $table->text('narration')->nullable();
             $table->enum('status', ['pending', 'approved', 'rejected'])->default('pending');

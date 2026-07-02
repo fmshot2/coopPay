@@ -131,12 +131,11 @@ class LoanApplicationController extends Controller
             'approved_at' => now(),
         ]);
 
-        // Calculate repayment — fixed 10% interest
         $interestRate   = 10;
         $totalRepayable = round($loanApplication->amount + ($loanApplication->amount * 0.10), 2);
         $monthlyPayment = round($totalRepayable / $loanApplication->duration_months, 2);
 
-        $loanPlan = DB::transaction(function () use ($loanApplication, $interestRate, $monthlyPayment, $totalRepayable) {
+        DB::transaction(function () use ($loanApplication, $interestRate, $monthlyPayment, $totalRepayable) {
             $loanPlan = LoanPlan::create([
                 'user_id'             => $loanApplication->user_id,
                 'loan_type_id'        => $loanApplication->loan_type_id,
@@ -147,33 +146,53 @@ class LoanApplicationController extends Controller
                 'months_remaining'    => $loanApplication->duration_months,
                 'amount_remaining'    => $totalRepayable,
                 'start_date'          => now(),
-                'next_due_date'       => now()->addMonth()->startOfMonth(),
+                'next_due_date'       => now()->startOfMonth(),
                 'status'              => 'active',
                 'notes'               => $loanApplication->purpose,
             ]);
 
-            $deductionDate = now()->addMonth();
+            $deductionDate = now()->startOfMonth(); // start THIS month, not next
+
             for ($i = 0; $i < $loanApplication->duration_months; $i++) {
-                MonthlyDeduction::create([
-                    'user_id'         => $loanApplication->user_id,
-                    'loan_plan_id'    => $loanPlan->id,
-                    'month'           => $deductionDate->format('Y-m'),
-                    'expected_amount' => $monthlyPayment,
-                    'status'          => 'pending',
-                    'confirmed_at'    => null,
-                    'approved_by'     => null,
-                    'approved_at'     => null,
-                    'member_note'     => null,
-                    'admin_note'      => null,
+                [$year, $month] = $this->resolveYearMonth($deductionDate);
+
+                MonthlyRepayment::create([
+                    'user_id'      => $loanApplication->user_id,
+                    'loan_plan_id' => $loanPlan->id,
+                    'year_id'      => $year->id,
+                    'month_id'     => $month->id,
+                    'month'        => $deductionDate->format('Y-m'),
+                    'amount_due'   => $monthlyPayment,
+                    'status'       => 'unpaid',
                 ]);
 
-                $deductionDate = $deductionDate->addMonth();
+                $deductionDate = $deductionDate->copy()->addMonth()->startOfMonth();
             }
-
-            return $loanPlan;
         });
 
         return $this->respondSuccess('Loan application approved and loan plan created.');
+    }
+
+    /**
+     * Resolve or create Year and Month records for a given date.
+     * Returns [$year, $month]
+     */
+    private function resolveYearMonth(\Carbon\Carbon $date): array
+    {
+        $year = Year::firstOrCreate(
+            ['year' => $date->year],
+            ['is_active' => true]
+        );
+
+        $month = Month::firstOrCreate(
+            ['year_id' => $year->id, 'number' => $date->month],
+            [
+                'name'      => $date->format('F'), // e.g. "July"
+                'is_active' => true,
+            ]
+        );
+
+        return [$year, $month];
     }
 
     public function reject(Request $request, LoanApplication $loanApplication)

@@ -7,6 +7,7 @@ import { Pagination } from '@/components/ui/pagination'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
 import { ref, computed } from 'vue'
 import { watchDebounced } from '@vueuse/core'
 import { CreditCard, Plus, Search, Calendar, Users, TrendingUp, CheckCircle } from 'lucide-vue-next'
@@ -134,7 +135,8 @@ const changePerPage = (value) => {
                     </Select>
 
                     <!-- Custom Date Inputs -->
-                    <div v-if="dateFilter === 'custom'" class="flex items-center gap-2 animate-in fade-in slide-in-from-right-2 duration-300">
+                    <div v-if="dateFilter === 'custom'"
+                        class="flex items-center gap-2 animate-in fade-in slide-in-from-right-2 duration-300">
                         <Input v-model="fromDate" type="date" class="w-[130px] h-9 text-xs" />
                         <span class="text-muted-foreground">-</span>
                         <Input v-model="toDate" type="date" class="w-[130px] h-9 text-xs" />
@@ -145,7 +147,7 @@ const changePerPage = (value) => {
                     <Button size="sm" as-child class="rounded-xl">
                         <Link :href="route('admin.loans.create')">
                             <Plus class="h-4 w-4 mr-2" />
-                            Assign Loan
+                            Create Loan
                         </Link>
                     </Button>
                 </div>
@@ -173,14 +175,13 @@ const changePerPage = (value) => {
                             <CardTitle class="text-md font-medium text-muted-foreground">
                                 {{ card.label }}
                             </CardTitle>
-                            <component
-                                :is="card.icon"
-                                class="h-4 w-4 text-primary"
-                            />
+                            <component :is="card.icon" class="h-4 w-4 text-primary" />
                         </CardHeader>
                         <CardContent>
                             <p class="text-2xl font-bold text-foreground">
-                                {{ typeof card.value === 'number' && card.label === 'Total Disbursed' ? formatCurrency(card.value) : card.value }}
+                                {{ typeof card.value === 'number' && card.label === 'Total Disbursed' ?
+                                    formatCurrency(card.value) :
+                                    card.value }}
                             </p>
                             <p class="text-xs text-muted-foreground mt-1">{{ card.description }}</p>
                         </CardContent>
@@ -194,12 +195,10 @@ const changePerPage = (value) => {
                     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
                         <div class="flex-1 max-w-md">
                             <div class="relative">
-                                <Search class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                                <Input
-                                    v-model="search"
-                                    placeholder="Search members or ID..."
-                                    class="pl-9 h-10 bg-background border-none shadow-sm rounded-xl"
-                                />
+                                <Search
+                                    class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                <Input v-model="search" placeholder="Search members or ID..."
+                                    class="pl-9 h-10 bg-background border-none shadow-sm rounded-xl" />
                             </div>
                         </div>
                         <div class="flex flex-wrap items-center gap-3">
@@ -248,7 +247,8 @@ const changePerPage = (value) => {
                                         <th class="py-4 px-6 font-medium text-muted-foreground">Type</th>
                                         <th class="py-4 px-6 font-medium text-muted-foreground text-right">Amount</th>
                                         <th class="py-4 px-6 font-medium text-muted-foreground text-right">Monthly</th>
-                                        <th class="py-4 px-6 font-medium text-muted-foreground text-right">Remaining</th>
+                                        <th class="py-4 px-6 font-medium text-muted-foreground text-right">Remaining
+                                        </th>
                                         <th class="py-4 px-6 font-medium text-muted-foreground text-center">Months</th>
                                         <th class="py-4 px-6 font-medium text-muted-foreground">Next Due</th>
                                         <th class="py-4 px-6 font-medium text-muted-foreground">Status</th>
@@ -256,17 +256,15 @@ const changePerPage = (value) => {
                                     </tr>
                                 </thead>
                                 <tbody class="divide-y divide-border/50">
-                                    <tr
-                                        v-for="loan in loans.data"
-                                        :key="loan.id"
-                                        class="hover:bg-muted/20 transition-colors"
-                                    >
+                                    <tr v-for="loan in loans.data" :key="loan.id"
+                                        class="hover:bg-muted/20 transition-colors">
                                         <td class="py-4 px-6">
                                             <p class="font-medium text-foreground">{{ loan.member_name }}</p>
                                             <p class="text-xs text-muted-foreground font-mono">{{ loan.member_id }}</p>
                                         </td>
                                         <td class="py-4 px-6">
-                                            <Badge variant="outline" class="rounded-lg px-2 py-0.5 text-[10px] uppercase tracking-wider font-bold">
+                                            <Badge variant="outline"
+                                                class="rounded-lg px-2 py-0.5 text-[10px] uppercase tracking-wider font-bold">
                                                 {{ loan.loan_type }}
                                             </Badge>
                                         </td>
@@ -286,13 +284,52 @@ const changePerPage = (value) => {
                                             {{ loan.next_due_date ?? '—' }}
                                         </td>
                                         <td class="py-4 px-6">
-                                            <Badge :variant="statusVariant(loan.status)" class="rounded-lg px-2 py-0.5 text-[10px] uppercase tracking-wider font-bold">
+                                            <Badge :variant="statusVariant(loan.status)"
+                                                class="rounded-lg px-2 py-0.5 text-[10px] uppercase tracking-wider font-bold">
                                                 {{ loan.status }}
                                             </Badge>
                                         </td>
                                         <td class="py-4 px-6 text-right">
-                                            <div v-if="loan.status === 'active'" class="flex items-center justify-end gap-1">
-                                                <Button variant="ghost" size="sm" class="h-8 rounded-lg hover:bg-muted text-xs"
+                                            <Select v-if="loan.status === 'active'" class="inline-block">
+                                                <SelectTrigger
+                                                    class="w-[150px] h-10 bg-background border-none shadow-sm rounded-xl">
+                                                    <SelectValue placeholder="Click to see options" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem>
+                                                        <Tooltip :delay-duration="0">
+                                                            <TooltipTrigger as-child>
+                                                                <Button variant="ghost" size="sm"
+                                                                    class="h-8 rounded-lg hover:bg-muted text-xs"
+                                                                    @click="markComplete(loan)">
+                                                                    Set Loan as Repayed
+                                                                </Button>
+                                                            </TooltipTrigger>
+                                                            <TooltipContent>
+                                                                Clicking this will repay this loan for this user.
+                                                            </TooltipContent>
+                                                        </Tooltip>
+                                                    </SelectItem>
+                                                    <SelectItem>
+                                                        <Tooltip :delay-duration="0">
+                                                            <TooltipTrigger as-child>
+                                                                <Button variant="ghost" size="sm"
+                                                                    class="h-8 rounded-lg text-xs text-destructive hover:text-destructive hover:bg-destructive/10"
+                                                                    @click="cancelLoan(loan)">
+                                                                    Cancel Loan
+                                                                </Button>
+                                                            </TooltipTrigger>
+                                                            <TooltipContent>
+                                                                Clicking this will cancel this loan for this user.
+                                                            </TooltipContent>
+                                                        </Tooltip>
+                                                    </SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                            <!-- <div v-if="loan.status === 'active'"
+                                                class="flex items-center justify-end gap-1">
+                                                <Button variant="ghost" size="sm"
+                                                    class="h-8 rounded-lg hover:bg-muted text-xs"
                                                     @click="markComplete(loan)">
                                                     Complete
                                                 </Button>
@@ -301,7 +338,7 @@ const changePerPage = (value) => {
                                                     @click="cancelLoan(loan)">
                                                     Cancel
                                                 </Button>
-                                            </div>
+                                            </div>  -->
                                             <span v-else class="text-xs text-muted-foreground px-4">—</span>
                                         </td>
                                     </tr>
@@ -311,12 +348,14 @@ const changePerPage = (value) => {
                     </div>
 
                     <!-- Pagination -->
-                    <div v-if="loans.last_page > 1" class="mt-8 flex flex-col md:flex-row md:items-center justify-between gap-4 px-2">
+                    <div v-if="loans.last_page > 1"
+                        class="mt-8 flex flex-col md:flex-row md:items-center justify-between gap-4 px-2">
                         <div class="flex items-center gap-6">
                             <div class="flex items-center gap-3">
                                 <span class="text-xs font-medium text-muted-foreground">Rows per page</span>
                                 <Select v-model="perPage" @update:modelValue="changePerPage">
-                                    <SelectTrigger class="w-[70px] h-8 bg-background border-none shadow-sm rounded-lg text-xs">
+                                    <SelectTrigger
+                                        class="w-[70px] h-8 bg-background border-none shadow-sm rounded-lg text-xs">
                                         <SelectValue :placeholder="perPage" />
                                     </SelectTrigger>
                                     <SelectContent>

@@ -17,6 +17,8 @@ use Inertia\Response;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\Log;
+use Modules\Admin\Imports\DeductionImport;
 
 class DeductionController extends Controller
 {
@@ -188,8 +190,23 @@ class DeductionController extends Controller
                 ->where('year_id', $request->year_id)
                 ->firstOrFail();
 
-            $import = new MembersImport($request->year_id, $request->month_id);
+            Log::info('Import started', [
+                'year_id'  => $request->year_id,
+                'month_id' => $request->month_id,
+                'file'     => $request->file('file')->getClientOriginalName(),
+            ]);
+
+            $import = new DeductionImport($request->year_id, $request->month_id);
+
+            Log::info('DeductionImport instantiated');
+
             Excel::import($import, $request->file('file'));
+
+            Log::info('Excel::import completed', [
+                'processed' => $import->processed,
+                'skipped'   => $import->skipped,
+                'errors'    => $import->errors,
+            ]);
 
             $message = "{$import->processed} rows processed successfully.";
             if ($import->skipped > 0) {
@@ -201,6 +218,12 @@ class DeductionController extends Controller
                 ->with('success', $message)
                 ->with('import_errors', $import->errors);
         } catch (\Throwable $e) {
+            Log::error('Import controller failed', [
+                'error' => $e->getMessage(),
+                'file'  => $e->getFile(),
+                'line'  => $e->getLine(),
+                'trace' => $e->getTraceAsString(),
+            ]);
             return $this->respondException($e, 'Failed to import deductions.');
         }
     }

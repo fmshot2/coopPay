@@ -58,7 +58,7 @@ const collapsed = ref(false)
 
 // Admin menu items
 const adminMenu = [
-    { label: 'Dashboard', route: 'admin.dashboard', icon: LayoutDashboard },
+    // { label: 'Dashboard', route: 'admin.dashboard', icon: LayoutDashboard },
     {
         label: 'Members',
         route: 'admin.members.index',
@@ -66,22 +66,22 @@ const adminMenu = [
         children: [
             { label: 'All Members', route: 'admin.members.index' },
             { label: 'Add New Member', route: 'admin.members.create' },
-            { label: 'Conflicted Member', route: 'admin.members.conflicted' },
-            { label: 'Upload Members (CSV)', route: 'admin.members.import' },
-        ],
-    },
-    {
-        label: 'Loans',
-        route: 'admin.loans.index',
-        icon: CreditCard,
-        children: [
-            { label: 'Upload New Loans (CSV)', route: 'admin.loans.import' },
+            // { label: 'Conflicted Member', route: 'admin.members.conflicted' },
+            // { label: 'Upload Members (CSV)', route: 'admin.members.import' },
         ],
     },
     {
         label: 'Loan Applications', route: 'admin.loan-applications.index', icon: Tags
-
     },
+    {
+        label: 'All Loans',
+        route: 'admin.loans.index',
+        icon: CreditCard,
+        // children: [
+        //     { label: 'Upload New Loans (CSV)', route: 'admin.loans.import' },
+        // ],
+    },
+
     // { label: 'Register', route: 'admin.members.create', icon: Plus },
     {
         label: 'Deductions',
@@ -90,6 +90,14 @@ const adminMenu = [
         children: [
             { label: 'All Deductions', route: 'admin.deductions.index' },
             { label: 'Upload Monthly Deductions (CSV)', route: 'admin.deductions.import' },
+        ],
+    },
+    {
+        label: 'Expected Repayments',
+        route: 'admin.repayments.schedule.index',
+        icon: CheckCircle,
+        children: [
+            { label: 'All Repayment Schedules', route: 'admin.repayments.schedule.index' },
         ],
     },
     { label: 'Savings', route: 'admin.savings.index', icon: Wallet },
@@ -106,7 +114,7 @@ const adminMenu = [
 
 // Member menu items
 const memberMenu = [
-    { label: 'Dashboard', route: 'member.dashboard', icon: LayoutDashboard },
+    // { label: 'Dashboard', route: 'member.dashboard', icon: LayoutDashboard },
     { label: 'My Loans', route: 'member.loans.index', icon: CreditCard },
     { label: 'Loan Applications', route: 'member.loan-applications.index', icon: FileText },
     { label: 'Deductions', route: 'member.deductions.index', icon: CheckCircle },

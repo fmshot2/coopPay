@@ -12,7 +12,7 @@ class LoanApplicationData
         public readonly int    $duration_months,
         public readonly float  $monthly_payment,
         public readonly float  $total_payment,
-        public readonly string $status = 'pending',
+        public readonly ?string $status = 'pending',
         public readonly ?string $purpose = null,
         public readonly ?string $source = null,
     ) {}

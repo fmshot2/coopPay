@@ -14,7 +14,11 @@ return new class extends Migration
         Schema::create('monthly_deductions', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
-            $table->foreignId('loan_plan_id')->constrained()->onDelete('cascade');
+            // $table->foreignId('loan_plan_id')->constrained()->onDelete('cascade');
+            // $table->id('savings_contributions_id')->constrained()->onDelete('cascade')->nullable();
+            // $table->enum('deducted_for', ['loan', 'savings'])->default('savings');
+            $table->foreignId('year_id')->constrained()->onDelete('cascade');
+            $table->foreignId('month_id')->constrained()->onDelete('cascade');
             $table->string('month'); // format: 2025-01
             $table->decimal('expected_amount', 12, 2);
             $table->enum('status', ['pending', 'approved', 'rejected'])->default('pending');
@@ -23,6 +27,7 @@ return new class extends Migration
             $table->timestamp('approved_at')->nullable();   // when admin approved
             $table->text('member_note')->nullable();        // optional note from member
             $table->text('admin_note')->nullable();         // optional note from admin
+            $table->boolean('is_expected_amount')->nullable()->default(false);         // optional note from admin
             $table->timestamps();
 
             $table->unique(['user_id', 'month']); // prevents duplicate confirmation

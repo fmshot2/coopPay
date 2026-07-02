@@ -18,10 +18,10 @@ return new class extends Migration
             $table->foreignId('year_id')->constrained()->onDelete('cascade');
             $table->foreignId('month_id')->constrained()->onDelete('cascade');
             $table->decimal('amount_due', 15, 2);
-            $table->decimal('amount_paid', 15, 2);
+            $table->decimal('amount_paid', 15, 2)->nullable();
             $table->string('screenshot_path')->nullable();
             $table->string('narration')->nullable();
-            $table->enum('status', ['pending', 'approved', 'rejected'])->default('pending');
+            $table->enum('status', ['fully_paid', 'partly_paid', 'unpaid'])->default('unpaid');
             $table->foreignId('approved_by')->nullable()->constrained('users')->onDelete('set null');
             $table->timestamp('approved_at')->nullable();
             $table->text('admin_note')->nullable();

@@ -15,6 +15,7 @@ use Modules\Admin\Http\Controllers\RoleController;
 use Modules\Admin\Http\Controllers\PermissionController;
 use Modules\Admin\Http\Controllers\LoanApplicationController;
 use Modules\Admin\Http\Controllers\MessageController;
+use Modules\Admin\Http\Controllers\MonthlyRepaymentController;
 use Modules\Admin\Http\Controllers\SettingsController;
 use Modules\Division\Http\Controllers\DivisionController;
 
@@ -102,6 +103,11 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
         // Import monthly deductions (CSV)
         Route::get('/deductions/import', [DeductionController::class, 'showImport'])->name('deductions.import');
         Route::post('/deductions/import', [DeductionController::class, 'import'])->name('deductions.import.process');
+    });
+
+    // Monthly Repayment Schedule
+    Route::middleware('permission:manage-deductions')->group(function () {
+        Route::get('/repayments', [MonthlyRepaymentController::class, 'index'])->name('repayments.schedule.index');
     });
 
     // Contributions

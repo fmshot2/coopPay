@@ -35,7 +35,7 @@ class UserSeeder extends Seeder
             ['name' => 'Ibrahim Yakubu',    'email' => 'ibrahim@cooppay.test',  'phone' => '08101000007'],
             ['name' => 'Blessing Eze',      'email' => 'blessing@cooppay.test', 'phone' => '08101000008'],
             ['name' => 'Musa Garba',        'email' => 'musa@cooppay.test',     'phone' => '08101000009'],*/
-            ['name' => 'Test User',      'email' => 'testuser@testuser.com',   'phone' => '08101000010'],
+            // ['name' => 'Test User',         'email' => 'testuser@testuser.com',   'phone' => '08101000010'],
         ];
 
         foreach ($members as $index => $member) {

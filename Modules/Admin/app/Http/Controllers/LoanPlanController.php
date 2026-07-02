@@ -26,6 +26,7 @@ use Modules\Admin\Models\ImportConflict;
 use Modules\Admin\Models\Year;
 use Modules\Admin\Models\Month;
 use Modules\Division\Models\Division;
+use Modules\Loan\Models\MonthlyRepayment;
 
 class LoanPlanController extends Controller
 {
@@ -196,7 +197,7 @@ class LoanPlanController extends Controller
                 'purpose'         => $request->notes ?? null,
             ];
 
-            $this->loanApplicationService->computeAndCreate($request->user_id, $loanApplicationData, 'admin');
+            $loanApplication = $this->loanApplicationService->computeAndCreate($request->user_id, $loanApplicationData, 'admin');
             try {
                 $request->validate([
                     'user_id'       => ['required', 'exists:users,id'],
@@ -211,9 +212,10 @@ class LoanPlanController extends Controller
                 $totalRepayable = $request->loan_amount + ($request->loan_amount * $interestRate);
                 $monthlyPayment = round($totalRepayable / $request->total_months, 2);
                 $startDate      = Carbon::parse($request->start_date);
-                $nextDueDate    = $startDate->copy()->addMonth()->startOfMonth();
+                $deductionDate    = $startDate->copy()->startOfMonth();
+                // $deductionDate = now()->startOfMonth(); // start THIS month, not next
 
-                LoanPlan::create([
+                $loanPlan = LoanPlan::create([
                     'user_id'             => $request->user_id,
                     'loan_type_id'        => $request->loan_type_id,
                     'loan_amount'         => $request->loan_amount,
@@ -223,16 +225,54 @@ class LoanPlanController extends Controller
                     'months_remaining'    => $request->total_months,
                     'amount_remaining'    => $totalRepayable,
                     'start_date'          => $startDate,
-                    'next_due_date'       => $nextDueDate,
+                    'next_due_date'       => $deductionDate,
                     'status'              => 'active',
                     'notes'               => $request->notes,
                 ]);
+
+                //create monthly repayment schedule for each loan:
+                for ($i = 0; $i < $loanApplication->duration_months; $i++) {
+                    [$year, $month] = $this->resolveYearMonth($deductionDate);
+                    MonthlyRepayment::create([
+                        'user_id'      => $request->user_id,
+                        'loan_plan_id' => $loanPlan->id,
+                        'year_id'      => $year->id,
+                        'month_id'     => $month->id,
+                        'month'        => $nextDueDate->format('Y-m'),
+                        'amount_due'   => $monthlyPayment,
+                        'status'       => 'unpaid',
+                    ]);
+                    $deductionDate = $deductionDate->copy()->addMonth()->startOfMonth();
+                }
 
                 return $this->respondSuccess('Loan plan created successfully.');
             } catch (\Throwable $e) {
                 return $this->respondException($e, 'Failed to create loan plan.');
             }
         });
+    }
+
+
+    /**
+     * Resolve or create Year and Month records for a given date.
+     * Returns [$year, $month]
+     */
+    private function resolveYearMonth(Carbon $date): array
+    {
+        $year = Year::firstOrCreate(
+            ['year' => $date->year],
+            ['is_active' => true]
+        );
+
+        $month = Month::firstOrCreate(
+            ['year_id' => $year->id, 'number' => $date->month],
+            [
+                'name'      => $date->format('F'), // e.g. "July"
+                'is_active' => true,
+            ]
+        );
+
+        return [$year, $month];
     }
 
     public function edit(LoanPlan $loan): Response|JsonResponse|RedirectResponse
