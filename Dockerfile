@@ -47,9 +47,9 @@ EXPOSE 10000
 # Run caches at startup when env vars are available, then start Apache
 # if u wnat to seed u the line below instead of --force alone
 # php artisan migrate:fresh --seed --force && \
+# php artisan migrate --force && \
 CMD php artisan config:cache && \
     php artisan route:cache && \
     php artisan view:cache && \
-    # php artisan migrate --force && \
     php artisan migrate:fresh --seed --force && \
     apache2-foreground
