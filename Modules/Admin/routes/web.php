@@ -113,6 +113,7 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     // Contributions
     Route::middleware('permission:manage-contributions')->group(function () {
         Route::get('/savings', [ContributionController::class, 'savingsIndex'])->name('savings.index');
+        Route::patch('/savings/{saving}', [ContributionController::class, 'updateSavings'])->name('savings.update');
         Route::get('/contributions', [ContributionController::class, 'index'])->name('contributions.index');
         Route::patch('/contributions/{contribution}/approve', [ContributionController::class, 'approve'])->name('contributions.approve');
         Route::patch('/contributions/{contribution}/reject', [ContributionController::class, 'reject'])->name('contributions.reject');

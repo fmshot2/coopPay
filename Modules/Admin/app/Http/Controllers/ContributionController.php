@@ -193,6 +193,31 @@ class ContributionController extends Controller
         }
     }
 
+    public function updateSavings(Request $request, SavingsContribution $saving): JsonResponse|RedirectResponse
+    {
+        try {
+            $validated = $request->validate([
+                'amount'     => ['required', 'numeric', 'min:0.01'],
+                'status'     => ['required', 'in:pending,approved,rejected'],
+                'narration'  => ['nullable', 'string', 'max:500'],
+                'admin_note' => ['nullable', 'string', 'max:500'],
+            ]);
+
+            $saving->update([
+                'amount'      => $validated['amount'],
+                'status'      => $validated['status'],
+                'narration'   => $validated['narration'] ?? $saving->narration,
+                'admin_note'  => $validated['admin_note'] ?? $saving->admin_note,
+                'approved_by' => in_array($validated['status'], ['approved', 'rejected']) ? Auth::id() : $saving->approved_by,
+                'approved_at' => in_array($validated['status'], ['approved', 'rejected']) ? now() : $saving->approved_at,
+            ]);
+
+            return $this->respondSuccess('Savings contribution updated successfully.');
+        } catch (\Throwable $e) {
+            return $this->respondException($e, 'Failed to update savings contribution.');
+        }
+    }
+
     public function approve(ExtraPayment $contribution)
     {
         try {
