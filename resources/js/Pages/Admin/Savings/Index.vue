@@ -244,7 +244,7 @@ const submitEdit = () => {
                                                         <!-- Edit always available -->
                                                         <DropdownMenuItem class="cursor-pointer" @click="openEdit(c)">
                                                             <Pencil class="h-4 w-4 mr-2" />
-                                                            Edit
+                                                            Update savings record
                                                         </DropdownMenuItem>
 
                                                         <!-- Approve/Reject only when pending -->
@@ -332,7 +332,7 @@ const submitEdit = () => {
                             <Input id="edit-amount" v-model="editForm.amount" type="number" min="0" step="0.01"
                                 :class="editForm.errors.amount ? 'border-destructive' : ''" />
                             <p v-if="editForm.errors.amount" class="text-xs text-destructive">{{ editForm.errors.amount
-                                }}</p>
+                            }}</p>
                         </div>
                         <div class="space-y-1.5">
                             <Label for="edit-status">Status</Label>
@@ -348,7 +348,7 @@ const submitEdit = () => {
                                 </SelectContent>
                             </Select>
                             <p v-if="editForm.errors.status" class="text-xs text-destructive">{{ editForm.errors.status
-                                }}</p>
+                            }}</p>
                         </div>
                         <div class="space-y-1.5">
                             <Label for="edit-narration">Narration</Label>
