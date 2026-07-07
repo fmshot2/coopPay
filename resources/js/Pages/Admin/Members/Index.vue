@@ -351,7 +351,7 @@ const reassignMember = (memberId, targetId) => {
                                         <td class="py-4 px-6 font-medium text-foreground space-y-1">
                                             <div class="flex items-center gap-2">
                                                 <span>{{ member.name }}</span>
-                                                <Tooltip v-if="member.is_temporary" :delay-duration="0">
+                                                <!-- <Tooltip v-if="member.is_temporary" :delay-duration="0">
                                                     <TooltipTrigger as-child>
                                                         <Badge variant="destructive"
                                                             class="rounded-lg px-2 py-0.5 text-[10px] uppercase tracking-wider font-bold">
@@ -363,7 +363,7 @@ const reassignMember = (memberId, targetId) => {
                                                         to a real
                                                         member.
                                                     </TooltipContent>
-                                                </Tooltip>
+                                                </Tooltip> -->
                                             </div>
                                         </td>
                                         <td class="py-4 px-6 text-muted-foreground">

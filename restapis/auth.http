@@ -1,0 +1,66 @@
+### Variables — adjust host/port to your Laragon setup
+# @baseUrl = http://coopPay.test/api/v1
+@baseUrl = http://localhost:8000/api/v1
+@token = 11|QPgSWqSg5lMA2nQHoSGRngIjI1Elb6hBYZGdmAEZc020dfc5
+
+### 1. Admin login
+POST {{baseUrl}}/login
+Content-Type: application/json
+Accept: application/json
+
+{
+  "email": "admin@cooppay.test",
+  "password": "password"
+}
+
+### 2. Member login (member_id + name instead of email)
+POST {{baseUrl}}/login
+Content-Type: application/json
+Accept: application/json
+
+{
+  "member_id": "COOP-001",
+  "name": "AMINU MAIMUNA ASABE",
+  "password": "newSecurePassword123"
+}
+
+### 3. Get current authenticated user
+GET {{baseUrl}}/me
+Accept: application/json
+Authorization: Bearer {{token}}
+
+### 4. Change password (if requires_password_change was true)
+POST {{baseUrl}}/change-password
+Content-Type: application/json
+Accept: application/json
+Authorization: Bearer {{token}}
+
+{
+  "password": "newSecurePassword123",
+  "password_confirmation": "newSecurePassword123"
+}
+
+### 5. Complete profile (if requires_profile_completion was true)
+POST {{baseUrl}}/profile/complete
+Content-Type: application/json
+Accept: application/json
+Authorization: Bearer {{token}}
+
+{
+  "email": "member@example.com",
+  "phone": "08012345678"
+}
+
+### 6. Forgot password
+POST {{baseUrl}}/forgot-password
+Content-Type: application/json
+Accept: application/json
+
+{
+  "email": "member@example.com"
+}
+
+### 7. Logout (revokes the token used in this request)
+POST {{baseUrl}}/logout
+Accept: application/json
+Authorization: Bearer {{token}}

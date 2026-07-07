@@ -72,8 +72,14 @@ class DeductionImport implements ToCollection, SkipsEmptyRows
             $this->skipped++;
             return;
         }
-
+        // old usable version
+        // $amount = is_numeric($amount) ? round((float) $amount, 2) : 0.00;
+        // this new version checks for comma and removes it, then checks if it's numeric
+        if (strpos($amount, ',') !== false) {
+            $amount = str_replace(',', '', $amount);
+        }
         $amount = is_numeric($amount) ? round((float) $amount, 2) : 0.00;
+
 
         if ($amount <= 0) {
             $this->errors[] = "Row {$rowNumber}: '{$name}' has no valid amount — skipped.";

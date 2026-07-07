@@ -97,13 +97,25 @@ class AuthController extends Controller
             $request->session()->regenerate();
         }
 
+        // Issue the API token up front (before the checks below) so that a
+        // token-based client always has something to authenticate follow-up
+        // requests with, even if a password change or profile completion is
+        // required next. Harmless/unused for the Inertia (session) flow.
+        $token = $user->createToken('api-token')->plainTextToken;
+
         // Force password change on first login
         if ($user->must_change_password) {
             return $request->expectsJson()
                 ? response()->json([
                     'success' => true,
                     'message' => 'Password change required.',
-                    'redirect' => route('password.change'),
+                    'token' => $token,
+                    'data' => [
+                        'user' => $user,
+                        'requires_password_change' => true,
+                        'requires_profile_completion' => $this->isProfileIncomplete($user),
+                        'role' => $user->hasRole('admin') ? 'admin' : 'member',
+                    ],
                 ])
                 : redirect()->route('password.change');
         }
@@ -114,15 +126,18 @@ class AuthController extends Controller
                 ? response()->json([
                     'success' => true,
                     'message' => 'Profile completion required.',
-                    'redirect' => route('profile.complete'),
+                    'token' => $token,
+                    'data' => [
+                        'user' => $user,
+                        'requires_password_change' => false,
+                        'requires_profile_completion' => true,
+                        'role' => $user->hasRole('admin') ? 'admin' : 'member',
+                    ],
                 ])
                 : redirect()->route('profile.complete');
         }
 
-        // Create token for API authentication
-        $token = $user->createToken('api-token')->plainTextToken;
-
-        // Redirect based on role
+        // Redirect based on role (web) / return role (api)
         if ($user->hasRole('admin')) {
             return $request->expectsJson()
                 ? response()->json([
@@ -131,7 +146,9 @@ class AuthController extends Controller
                     'token'   => $token,
                     'data' => [
                         'user' => $user,
-                        'redirect' => route('admin.members.index'),
+                        'requires_password_change' => false,
+                        'requires_profile_completion' => false,
+                        'role' => 'admin',
                     ],
                 ])
                 : redirect()->route('admin.members.index');
@@ -144,10 +161,25 @@ class AuthController extends Controller
                 'token' => $token,
                 'data' => [
                     'user' => $user,
-                    'redirect' => route('member.dashboard'),
+                    'requires_password_change' => false,
+                    'requires_profile_completion' => false,
+                    'role' => 'member',
                 ],
             ])
             : redirect()->route('member.dashboard');
+    }
+
+    // Return the currently authenticated user (API clients use this to
+    // restore session state on load, e.g. after a page refresh).
+    public function me(Request $request)
+    {
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'user' => $request->user(),
+                'role' => $request->user()->hasRole('admin') ? 'admin' : 'member',
+            ],
+        ]);
     }
 
     // Show change password form
@@ -175,7 +207,10 @@ class AuthController extends Controller
                 ? response()->json([
                     'success' => true,
                     'message' => 'Profile completion required.',
-                    'redirect' => route('profile.complete'),
+                    'data' => [
+                        'requires_profile_completion' => true,
+                        'role' => $user->hasRole('admin') ? 'admin' : 'member',
+                    ],
                 ])
                 : redirect()->route('profile.complete');
         }
@@ -186,7 +221,7 @@ class AuthController extends Controller
                 ? response()->json([
                     'success' => true,
                     'message' => 'Password updated successfully.',
-                    'redirect' => route('admin.dashboard'),
+                    'data' => ['requires_profile_completion' => false, 'role' => 'admin'],
                 ])
                 : redirect()->route('admin.dashboard');
         }
@@ -195,7 +230,7 @@ class AuthController extends Controller
             ? response()->json([
                 'success' => true,
                 'message' => 'Password updated successfully.',
-                'redirect' => route('member.dashboard'),
+                'data' => ['requires_profile_completion' => false, 'role' => 'member'],
             ])
             : redirect()->route('member.dashboard');
     }
@@ -226,7 +261,7 @@ class AuthController extends Controller
                 ? response()->json([
                     'success' => true,
                     'message' => 'Profile completed successfully.',
-                    'redirect' => route('admin.dashboard'),
+                    'data' => ['role' => 'admin'],
                 ])
                 : redirect()->route('admin.dashboard');
         }
@@ -235,7 +270,7 @@ class AuthController extends Controller
             ? response()->json([
                 'success' => true,
                 'message' => 'Profile completed successfully.',
-                'redirect' => route('member.dashboard'),
+                'data' => ['role' => 'member'],
             ])
             : redirect()->route('member.dashboard');
     }
@@ -243,13 +278,22 @@ class AuthController extends Controller
     // Logout
     public function logout(Request $request)
     {
-        Auth::logout();
-        $request->session()->invalidate();
-        $request->session()->regenerateToken();
+        // API/token clients: revoke just the token that was used for this request.
+        if ($request->expectsJson()) {
+            $request->user()?->currentAccessToken()?->delete();
 
-        return $request->expectsJson()
-            ? response()->json(['success' => true, 'message' => 'Logged out successfully.'])
-            : redirect()->route('login');
+            return response()->json(['success' => true, 'message' => 'Logged out successfully.']);
+        }
+
+        // Web/session clients.
+        Auth::logout();
+
+        if ($request->hasSession()) {
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+        }
+
+        return redirect()->route('login');
     }
 
     // Show forgot password form

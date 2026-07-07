@@ -386,6 +386,8 @@ class ContributionController extends Controller
             'member_name'     => $c->user->name,
             'member_id'       => $c->user->member_id,
             'loan_type'       => '—',
+            // 'month'           => $c->year->year . ' ' . $c->month->name, // e.g. "2025 July"
+            'month'           => Carbon::parse($c->month . '-01')->format('F Y'),
             'amount'          => $c->amount,
             'narration'       => $c->narration,
             'screenshot_path' => $c->screenshot_path,

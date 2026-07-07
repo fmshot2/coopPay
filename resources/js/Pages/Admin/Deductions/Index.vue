@@ -151,7 +151,8 @@ const changePerPage = (value) => {
                     </Select>
 
                     <!-- Custom Date Inputs -->
-                    <div v-if="dateFilter === 'custom'" class="flex items-center gap-2 animate-in fade-in slide-in-from-right-2 duration-300">
+                    <div v-if="dateFilter === 'custom'"
+                        class="flex items-center gap-2 animate-in fade-in slide-in-from-right-2 duration-300">
                         <Input v-model="fromDate" type="date" class="w-[130px] h-9 text-xs" />
                         <span class="text-muted-foreground">-</span>
                         <Input v-model="toDate" type="date" class="w-[130px] h-9 text-xs" />
@@ -181,10 +182,7 @@ const changePerPage = (value) => {
                             <CardTitle class="text-md font-medium text-muted-foreground">
                                 {{ card.label }}
                             </CardTitle>
-                            <component
-                                :is="card.icon"
-                                class="h-4 w-4 text-primary"
-                            />
+                            <component :is="card.icon" class="h-4 w-4 text-primary" />
                         </CardHeader>
                         <CardContent>
                             <p class="text-2xl font-bold text-foreground">
@@ -202,12 +200,10 @@ const changePerPage = (value) => {
                     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
                         <div class="flex-1 max-w-md">
                             <div class="relative">
-                                <Search class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                                <Input
-                                    v-model="search"
-                                    placeholder="Search members or ID..."
-                                    class="pl-9 h-10 bg-background border-none shadow-sm rounded-xl"
-                                />
+                                <Search
+                                    class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                <Input v-model="search" placeholder="Search members or ID..."
+                                    class="pl-9 h-10 bg-background border-none shadow-sm rounded-xl" />
                             </div>
                         </div>
                         <div class="flex flex-wrap items-center gap-3">
@@ -242,22 +238,22 @@ const changePerPage = (value) => {
                                         <th class="py-4 px-6 font-medium text-muted-foreground">Member</th>
                                         <th class="py-4 px-6 font-medium text-muted-foreground text-center">Month</th>
                                         <th class="py-4 px-6 font-medium text-muted-foreground text-right">Amount</th>
-                                        <th class="py-4 px-6 font-medium text-muted-foreground text-center">Timeline</th>
+                                        <th class="py-4 px-6 font-medium text-muted-foreground text-center">Timeline
+                                        </th>
                                         <th class="py-4 px-6 font-medium text-muted-foreground">Status</th>
                                         <th class="py-4 px-6 font-medium text-muted-foreground text-right">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody class="divide-y divide-border/50">
-                                    <tr
-                                        v-for="d in deductions.data"
-                                        :key="d.id"
-                                        class="hover:bg-muted/20 transition-colors"
-                                    >
+                                    <tr v-for="d in deductions.data" :key="d.id"
+                                        class="hover:bg-muted/20 transition-colors">
                                         <td class="py-4 px-6">
                                             <div class="flex flex-col">
                                                 <span class="font-medium text-foreground">{{ d.member_name }}</span>
-                                                <span class="text-xs text-muted-foreground font-mono">{{ d.member_id }}</span>
-                                                <Badge variant="outline" class="w-fit mt-1 rounded-lg px-2 py-0.5 text-[10px] uppercase tracking-wider font-bold">
+                                                <span class="text-xs text-muted-foreground font-mono">{{ d.member_id
+                                                    }}</span>
+                                                <Badge variant="outline"
+                                                    class="w-fit mt-1 rounded-lg px-2 py-0.5 text-[10px] uppercase tracking-wider font-bold">
                                                     {{ d.loan_type }}
                                                 </Badge>
                                             </div>
@@ -285,32 +281,38 @@ const changePerPage = (value) => {
                                             </div>
                                         </td>
                                         <td class="py-4 px-6">
-                                            <Badge :variant="statusVariant(d.status)" class="rounded-lg px-2 py-0.5 text-[10px] uppercase tracking-wider font-bold">
+                                            <Badge :variant="statusVariant(d.status)"
+                                                class="rounded-lg px-2 py-0.5 text-[10px] uppercase tracking-wider font-bold">
                                                 {{ d.status }}
                                             </Badge>
                                         </td>
                                         <td class="py-4 px-6 text-right">
-                                            <div v-if="d.status === 'pending'" class="flex items-center justify-end gap-2">
+                                            <div v-if="d.status === 'pending'"
+                                                class="flex items-center justify-end gap-2">
                                                 <!-- Reject form -->
-                                                <div v-if="rejectingId === d.id" class="flex items-center gap-2 animate-in fade-in slide-in-from-right-2">
-                                                    <Input
-                                                        v-model="rejectForm.admin_note"
-                                                        placeholder="Reason..."
+                                                <div v-if="rejectingId === d.id"
+                                                    class="flex items-center gap-2 animate-in fade-in slide-in-from-right-2">
+                                                    <Input v-model="rejectForm.admin_note" placeholder="Reason..."
                                                         class="h-8 text-xs w-32"
-                                                        :class="rejectForm.errors.admin_note ? 'border-destructive' : ''"
-                                                    />
-                                                    <Button size="sm" variant="destructive" class="h-8 px-2" :disabled="rejectForm.processing" @click="submitReject(d)">
+                                                        :class="rejectForm.errors.admin_note ? 'border-destructive' : ''" />
+                                                    <Button size="sm" variant="destructive" class="h-8 px-2"
+                                                        :disabled="rejectForm.processing" @click="submitReject(d)">
                                                         Confirm
                                                     </Button>
-                                                    <Button size="sm" variant="ghost" class="h-8 px-2" @click="cancelReject">
+                                                    <Button size="sm" variant="ghost" class="h-8 px-2"
+                                                        @click="cancelReject">
                                                         <XCircle class="h-4 w-4" />
                                                     </Button>
                                                 </div>
                                                 <template v-else>
-                                                    <Button variant="ghost" size="sm" class="h-8 rounded-lg hover:bg-muted text-xs text-primary" @click="approve(d)">
+                                                    <Button variant="ghost" size="sm"
+                                                        class="h-8 rounded-lg hover:bg-muted text-xs text-primary"
+                                                        @click="approve(d)">
                                                         <CheckCircle class="h-4 w-4 mr-1" /> Approve
                                                     </Button>
-                                                    <Button variant="ghost" size="sm" class="h-8 rounded-lg hover:bg-destructive/10 text-xs text-destructive" @click="startReject(d)">
+                                                    <Button variant="ghost" size="sm"
+                                                        class="h-8 rounded-lg hover:bg-destructive/10 text-xs text-destructive"
+                                                        @click="startReject(d)">
                                                         <XCircle class="h-4 w-4 mr-1" /> Reject
                                                     </Button>
                                                 </template>
@@ -326,12 +328,14 @@ const changePerPage = (value) => {
                     </div>
 
                     <!-- Pagination -->
-                    <div v-if="deductions.last_page > 1" class="mt-8 flex flex-col md:flex-row md:items-center justify-between gap-4 px-2">
+                    <div v-if="deductions.last_page > 1"
+                        class="mt-8 flex flex-col md:flex-row md:items-center justify-between gap-4 px-2">
                         <div class="flex items-center gap-6">
                             <div class="flex items-center gap-3">
                                 <span class="text-xs font-medium text-muted-foreground">Rows per page</span>
                                 <Select v-model="perPage" @update:modelValue="changePerPage">
-                                    <SelectTrigger class="w-[70px] h-8 bg-background border-none shadow-sm rounded-lg text-xs">
+                                    <SelectTrigger
+                                        class="w-[70px] h-8 bg-background border-none shadow-sm rounded-lg text-xs">
                                         <SelectValue :placeholder="perPage" />
                                     </SelectTrigger>
                                     <SelectContent>

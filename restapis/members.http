@@ -1,0 +1,101 @@
+### Variables
+# @baseUrl = http://coopPay.test/api/v1
+@baseUrl = http://localhost:8000/api/v1
+@token = 11|QPgSWqSg5lMA2nQHoSGRngIjI1Elb6hBYZGdmAEZc020dfc5
+
+### 1. List members (with filters/pagination)
+GET {{baseUrl}}/admin/members?per_page=10&search=&status=all&page=1
+Accept: application/json
+Authorization: Bearer {{token}}
+
+### 2. List conflicted members (from CSV import fuzzy-matching)
+GET {{baseUrl}}/admin/members/conflicted
+Accept: application/json
+Authorization: Bearer {{token}}
+
+### 3. Get create-form data (roles/permissions/divisions)
+GET {{baseUrl}}/admin/members/create
+Accept: application/json
+Authorization: Bearer {{token}}
+
+### 4. Create a member
+POST {{baseUrl}}/admin/members
+Content-Type: application/json
+Accept: application/json
+Authorization: Bearer {{token}}
+
+{
+  "name": "Jane Example",
+  "email": "jane@example.com",
+  "phone": "08000000000",
+  "member_id": "COOP-999",
+  "division_id": 1
+}
+
+### 5. Show a single member
+GET {{baseUrl}}/admin/members/1
+Accept: application/json
+Authorization: Bearer {{token}}
+
+### 6. Get edit-form data for a member
+GET {{baseUrl}}/admin/members/1/edit
+Accept: application/json
+Authorization: Bearer {{token}}
+
+### 7. Update a member
+PATCH {{baseUrl}}/admin/members/1
+Content-Type: application/json
+Accept: application/json
+Authorization: Bearer {{token}}
+
+{
+  "name": "Jane Example Updated",
+  "email": "jane@example.com",
+  "phone": "08000000001",
+  "division_id": 1,
+  "is_active": true
+}
+
+### 8. Toggle active status
+PATCH {{baseUrl}}/admin/members/2/toggle-active
+Accept: application/json
+Authorization: Bearer {{token}}
+
+### 9. Reset a member's password
+PATCH {{baseUrl}}/admin/members/1/reset-password
+Accept: application/json
+Authorization: Bearer {{token}}
+
+### 10. Update max loan amount
+PATCH {{baseUrl}}/admin/members/1/update-max-loan
+Content-Type: application/json
+Accept: application/json
+Authorization: Bearer {{token}}
+
+{
+  "max_loan_amount": 500000
+}
+
+### 11. Search assignees (for reassigning a temporary member)
+GET {{baseUrl}}/admin/members/1/assignees-search?q=john
+Accept: application/json
+Authorization: Bearer {{token}}
+
+### 12. Reassign a temporary member to a real member
+PATCH {{baseUrl}}/admin/members/1/reassign
+Content-Type: application/json
+Accept: application/json
+Authorization: Bearer {{token}}
+
+{
+  "target_member_id": 2
+}
+
+### 13. Download CSV import template (no Accept: json — this is a file)
+GET {{baseUrl}}/admin/members/template
+Authorization: Bearer {{token}}
+
+### 14. Months for a given year
+GET {{baseUrl}}/admin/years/1/months
+Accept: application/json
+Authorization: Bearer {{token}}

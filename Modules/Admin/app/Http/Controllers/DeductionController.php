@@ -71,6 +71,7 @@ class DeductionController extends Controller
                     'member_name'     => $d->user->name,
                     'member_id'       => $d->user->member_id,
                     'loan_type'       => $d->loanPlan?->loanType?->name ?? '—',
+                    // 'month'           => $d->month,
                     'month'           => Carbon::parse($d->month . '-01')->format('F Y'),
                     'expected_amount' => $d->expected_amount,
                     'status'          => $d->status,

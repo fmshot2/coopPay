@@ -117,7 +117,7 @@ const submitEdit = () => {
                         Review all member savings contributions.
                     </p>
                 </div>
-                <div class="flex items-center gap-3">
+                <!-- <div class="flex items-center gap-3">
                     <div class="bg-primary/10 border border-primary/20 rounded-lg px-4 py-2">
                         <p class="text-xs text-muted-foreground">Pending</p>
                         <p class="text-lg font-semibold">{{ stats?.total_pending ?? 0 }}</p>
@@ -130,8 +130,53 @@ const submitEdit = () => {
                         <p class="text-xs text-muted-foreground">Rejected</p>
                         <p class="text-lg font-semibold">{{ stats?.total_rejected ?? 0 }}</p>
                     </div>
-                </div>
+                </div> -->
             </div>
+
+            <!-- Stat Cards -->
+            <Deferred data="stats">
+                <template #fallback>
+                    <div class="grid grid-cols-2 lg:grid-cols-3 gap-4">
+                        <Card v-for="i in 3" :key="i" class="animate-pulse">
+                            <CardHeader class="pb-2">
+                                <div class="h-4 w-24 bg-muted rounded" />
+                            </CardHeader>
+                            <CardContent>
+                                <div class="h-8 w-20 bg-muted rounded" />
+                            </CardContent>
+                        </Card>
+                    </div>
+                </template>
+                <div class="grid grid-cols-2 lg:grid-cols-3 gap-4">
+                    <Card>
+                        <CardHeader class="flex flex-row items-center justify-between pb-2">
+                            <CardTitle class="text-sm font-medium text-muted-foreground">Pending</CardTitle>
+                            <Clock class="h-4 w-4 text-destructive" />
+                        </CardHeader>
+                        <CardContent>
+                            <p class="text-xl font-bold">{{ stats?.total_pending ?? 0 }}</p>
+                        </CardContent>
+                    </Card>
+                    <Card>
+                        <CardHeader class="flex flex-row items-center justify-between pb-2">
+                            <CardTitle class="text-sm font-medium text-muted-foreground">Approved</CardTitle>
+                            <CheckSquare class="h-4 w-4 text-primary" />
+                        </CardHeader>
+                        <CardContent>
+                            <p class="text-xl font-bold">{{ stats?.total_approved ?? 0 }}</p>
+                        </CardContent>
+                    </Card>
+                    <Card>
+                        <CardHeader class="flex flex-row items-center justify-between pb-2">
+                            <CardTitle class="text-sm font-medium text-muted-foreground">Rejected</CardTitle>
+                            <AlertCircle class="h-4 w-4 text-destructive" />
+                        </CardHeader>
+                        <CardContent>
+                            <p class="text-xl font-bold">{{ stats?.total_rejected ?? 0 }}</p>
+                        </CardContent>
+                    </Card>
+                </div>
+            </Deferred>
 
             <!-- Filters (unchanged) -->
             <Card class="border-none shadow-none bg-transparent">
@@ -139,7 +184,7 @@ const submitEdit = () => {
                     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
                         <div class="relative flex-1 max-w-md">
                             <Search class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                            <Input v-model="search" placeholder="Search member name or ID..."
+                            <Input v-model="search" placeholder="Search member name, email, ID..."
                                 class="pl-9 h-10 bg-background border-none shadow-sm rounded-xl" />
                         </div>
                         <div class="flex flex-wrap items-center gap-3">
@@ -165,16 +210,26 @@ const submitEdit = () => {
                                     <SelectItem value="last_week">Last 7 Days</SelectItem>
                                     <SelectItem value="last_month">Last 30 Days</SelectItem>
                                     <SelectItem value="last_year">Last 1 Year</SelectItem>
-                                    <SelectItem value="custom">Custom Range</SelectItem>
+                                    <!-- <SelectItem value="custom">Custom Range</SelectItem> -->
                                 </SelectContent>
                             </Select>
+                            <div class="flex flex-wrap items-center gap-2">
+                                <!-- <div v-if="dateFilter === 'custom'" class="flex flex-wrap items-center gap-2 mt-4"> -->
+                                <div class="relative flex-1 max-w-md">
+                                    <Input v-model="fromDate" type="date" class="w-36 h-10 text-xs" />
+                                    <Calendar
+                                        class="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500 pointer-events-none" />
+                                </div>
+                                <span class="text-muted-foreground">to</span>
+                                <div class="relative flex-1 max-w-md">
+                                    <Calendar
+                                        class="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500 pointer-events-none" />
+                                    <Input v-model="toDate" type="date" class="w-36 h-10 text-xs" />
+                                </div>
+                            </div>
                         </div>
                     </div>
-                    <div v-if="dateFilter === 'custom'" class="flex flex-wrap items-center gap-2 mt-4">
-                        <Input v-model="fromDate" type="date" class="w-36 h-10 text-xs" />
-                        <span class="text-muted-foreground">to</span>
-                        <Input v-model="toDate" type="date" class="w-36 h-10 text-xs" />
-                    </div>
+
                 </CardHeader>
             </Card>
 
@@ -196,7 +251,7 @@ const submitEdit = () => {
                                         <th class="py-4 px-6 font-medium text-muted-foreground">Narration</th>
                                         <th class="py-4 px-6 font-medium text-muted-foreground">Receipt</th>
                                         <th class="py-4 px-6 font-medium text-muted-foreground">Status</th>
-                                        <th class="py-4 px-6 font-medium text-muted-foreground">Date</th>
+                                        <th class="py-4 px-6 font-medium text-muted-foreground">Last Update</th>
                                         <th class="py-4 px-6 font-medium text-muted-foreground text-right">Actions</th>
                                     </tr>
                                 </thead>

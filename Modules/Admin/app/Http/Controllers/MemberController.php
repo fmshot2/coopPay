@@ -65,15 +65,29 @@ class MemberController extends Controller
                 });
             };
 
+
             $membersQuery = User::role('member')
                 ->with(['loanPlan', 'roles', 'division'])
                 ->when($search, function ($query, $search) {
-                    $query->where(function ($q) use ($search) {
-                        $q->where('name', 'like', "%{$search}%")
-                            ->orWhere('email', 'like', "%{$search}%")
-                            ->orWhere('member_id', 'like', "%{$search}%");
+                    $searchLower = strtolower($search); // Convert PHP search term to lowercase
+
+                    $query->where(function ($q) use ($searchLower) {
+                        $q->where(DB::raw('LOWER(name)'), 'like', "%{$searchLower}%")
+                            ->orWhere(DB::raw('LOWER(email)'), 'like', "%{$searchLower}%")
+                            ->orWhere(DB::raw('LOWER(member_id)'), 'like', "%{$searchLower}%");
                     });
                 })
+
+                // $membersQuery = User::role('member')
+                //     ->with(['loanPlan', 'roles', 'division'])
+                //     ->when($search, function ($query, $search) {
+                //         $query->where(function ($q) use ($search) {
+                //             $q->where('name', 'like', "%{$search}%")
+                //                 ->orWhere('email', 'like', "%{$search}%")
+                //                 ->orWhere('member_id', 'like', "%{$search}%");
+                //         });
+                //     })
+
                 ->when($status !== null && $status !== 'all', function ($query) use ($status) {
                     $query->where('is_active', $status === 'active');
                 })
@@ -687,6 +701,18 @@ class MemberController extends Controller
                 $message .= " {$skipped} row(s) flagged — {$conflicts} new conflict record(s) saved for review.";
             }
 
+            if (request()->expectsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => $message,
+                    'data' => [
+                        'processed' => $processed,
+                        'skipped' => $skipped,
+                        'conflicts' => $conflicts,
+                    ],
+                ]);
+            }
+
             return redirect()
                 ->route('admin.members.index')
                 ->with('success', $message);
@@ -714,6 +740,18 @@ class MemberController extends Controller
             $message = "{$import->processed} member(s) processed successfully.";
             if ($import->skipped > 0) {
                 $message .= " {$import->skipped} row(s) skipped.";
+            }
+
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => $message,
+                    'data' => [
+                        'processed' => $import->processed,
+                        'skipped' => $import->skipped,
+                        'errors' => $import->errors,
+                    ],
+                ]);
             }
 
             return redirect()
