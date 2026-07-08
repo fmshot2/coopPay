@@ -29,7 +29,7 @@ const status = ref(props.filters?.status || 'all')
 const dateFilter = ref(props.filters?.date_filter || 'all')
 const fromDate = ref(props.filters?.from_date || '')
 const toDate = ref(props.filters?.to_date || '')
-const perPage = ref(props.filters?.per_page?.toString() || '10')
+const perPage = ref(props.filters?.per_page?.toString() || '50')
 
 const formatCurrency = (amount) =>
     new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN', minimumFractionDigits: 2 }).format(amount ?? 0)
@@ -178,7 +178,7 @@ const submitEdit = () => {
                 </div>
             </Deferred>
 
-            <!-- Filters (unchanged) -->
+            <!-- Filters -->
             <Card class="border-none shadow-none bg-transparent">
                 <CardHeader class="px-0">
                     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -214,6 +214,7 @@ const submitEdit = () => {
                                 </SelectContent>
                             </Select>
                             <div class="flex flex-wrap items-center gap-2">
+                                <!-- you can toggle this using dateFilter value -->
                                 <!-- <div v-if="dateFilter === 'custom'" class="flex flex-wrap items-center gap-2 mt-4"> -->
                                 <div class="relative flex-1 max-w-md">
                                     <Input v-model="fromDate" type="date" class="w-36 h-10 text-xs" />
