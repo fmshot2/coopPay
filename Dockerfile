@@ -45,7 +45,7 @@ RUN echo "Listen 10000" > /etc/apache2/ports.conf \
 EXPOSE 10000
 
 # Run caches at startup when env vars are available, then start Apache
-# if u wnat to seed u the line below instead of --force alone
+# if u wnat to seed, use the line below instead of --force alone
 # php artisan migrate:fresh --seed --force && \
 # php artisan migrate --force && \
 CMD php artisan config:cache && \
